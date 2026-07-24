@@ -23,11 +23,13 @@ public class Product : Entity
         IsAvailable = true;
     }
 
-    public void UpdateDetails(string name, string description, decimal price)
+    public void UpdateDetails(string name, string description, decimal price, string? imageUrl, bool isAvailable)
     {
         Name = name;
         Description = description;
         Price = price;
+        ImageUrl = imageUrl;
+        IsAvailable = isAvailable;
         SetUpdatedAt();
     }
 }

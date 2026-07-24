@@ -16,4 +16,11 @@ public class ProductAddon : Entity
         Name = name;
         AdditionalPrice = additionalPrice;
     }
+
+    public void UpdateDetails(string name, decimal additionalPrice)
+    {
+        Name = name;
+        AdditionalPrice = additionalPrice;
+        SetUpdatedAt();
+    }
 }

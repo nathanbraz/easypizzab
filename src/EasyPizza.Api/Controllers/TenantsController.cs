@@ -32,7 +32,7 @@ public class TenantsController : ControllerBase
             : request.Slug.ToLower();
 
         var exists = await _masterDb.Tenants.AnyAsync(t => t.Slug == slug);
-        if (exists) return BadRequest("Tenant slug already exists.");
+        if (exists) return BadRequest("O slug deste tenant já existe.");
 
         var tenant = new Tenant(request.Name, slug, request.ConnectionString);
         _masterDb.Tenants.Add(tenant);

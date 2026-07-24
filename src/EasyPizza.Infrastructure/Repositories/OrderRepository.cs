@@ -29,4 +29,14 @@ public class OrderRepository : Repository<Order>, IOrderRepository
             .Include(o => o.Customer)
             .FirstOrDefaultAsync(o => o.Id == orderId);
     }
+
+    public async Task<Order?> GetLastCustomerOrderAsync(Guid customerId)
+    {
+        return await _dbSet
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Product)
+            .Where(o => o.CustomerId == customerId)
+            .OrderByDescending(o => o.CreatedAt)
+            .FirstOrDefaultAsync();
+    }
 }

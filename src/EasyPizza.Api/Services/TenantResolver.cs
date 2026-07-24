@@ -3,16 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EasyPizza.Api.Services;
 
-public interface ITenantProvider
-{
-    string? GetConnectionString();
-}
+using EasyPizza.Application.Interfaces.Services;
 
 public class HttpTenantProvider : ITenantProvider
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IServiceProvider _serviceProvider;
     private string? _connectionString;
+    private EasyPizza.Domain.Entities.Tenant? _tenant;
 
     public HttpTenantProvider(IHttpContextAccessor httpContextAccessor, IServiceProvider serviceProvider)
     {
@@ -44,9 +42,17 @@ public class HttpTenantProvider : ITenantProvider
         
         if (tenant != null)
         {
+            _tenant = tenant;
             _connectionString = tenant.ConnectionString;
         }
 
         return _connectionString;
+    }
+
+    public EasyPizza.Domain.Entities.Tenant? GetTenant()
+    {
+        if (_tenant != null) return _tenant;
+        GetConnectionString(); // This will resolve the tenant and connection string
+        return _tenant;
     }
 }

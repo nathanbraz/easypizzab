@@ -1,8 +1,6 @@
-using EasyPizza.Application.Interfaces.Repositories;
-using EasyPizza.Application.Interfaces.Services;
-using EasyPizza.Domain.Entities;
+using EasyPizza.Application.DTOs;
+using EasyPizza.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json.Serialization;
 
 namespace EasyPizza.Api.Controllers;
 
@@ -10,49 +8,48 @@ namespace EasyPizza.Api.Controllers;
 [Route("api/[controller]")]
 public class SessionsController : ControllerBase
 {
-    private readonly IRepository<OrderSession> _sessionRepository;
-    private readonly ICustomerService _customerService;
+    private readonly ISessionService _sessionService;
 
-    public SessionsController(IRepository<OrderSession> sessionRepository, ICustomerService customerService)
+    public SessionsController(ISessionService sessionService)
     {
-        _sessionRepository = sessionRepository;
-        _customerService = customerService;
+        _sessionService = sessionService;
     }
 
-    // Called by the WhatsApp Bot when a user interacts with it
-    [HttpPost("{tenantSlug}/bot-webhook")]
-    public async Task<IActionResult> GenerateSessionLink(string tenantSlug, [FromBody] GenerateSessionRequest request)
+    /// <summary>
+    /// Gerar um link mágico para acesso do cliente via WhatsApp.
+    /// O header 'x-tenant-slug' deve ser fornecido para identificar a pizzaria.
+    /// </summary>
+    [HttpPost("magic-link")]
+    public async Task<IActionResult> GenerateMagicLink([FromBody] GenerateSessionRequest request)
     {
-        // 1. Get or create the customer by Phone Number
-        var customer = await _customerService.GetOrCreateCustomerAsync(request.PhoneNumber, request.Name);
-        
-        // 2. Create a new OrderSession (valid for 2 hours)
-        var session = new OrderSession(customer.Id, 2);
-        await _sessionRepository.AddAsync(session);
-        await _sessionRepository.SaveChangesAsync();
-        
-        // 3. Return the magic link data
-        var magicLink = $"https://easypizza.com/{tenantSlug}/t/{session.Id}";
-        
-        return Ok(new GenerateSessionResponse(session.Id, magicLink, customer.Id));
-    }
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+            return BadRequest(new { success = false, message = "O número de telefone é obrigatório." });
 
-    // Called by the Frontend when user opens the magic link
-    [HttpGet("{tenantSlug}/validate/{sessionId:guid}")]
-    public async Task<IActionResult> ValidateSession(string tenantSlug, Guid sessionId)
-    {
-        var session = await _sessionRepository.GetByIdAsync(sessionId);
-        
-        if (session == null || session.ExpiresAt < DateTime.UtcNow || session.IsUsed)
+        try
         {
-            return Unauthorized(new { message = "Sessão inválida, expirada ou já utilizada." });
+            var response = await _sessionService.GenerateMagicLinkSessionAsync(request);
+            
+            return Ok(new
+            {
+                success = true,
+                message = "Link mágico gerado com sucesso.",
+                data = response
+            });
         }
-        
-        // Return valid session details to the frontend
-        return Ok(new ValidateSessionResponse(session.CustomerId, session.ExpiresAt));
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
+    }
+
+    // Endpoint para consumir o magic link e iniciar sessão no front-end
+    [HttpGet("{token}/customer-info")]
+    public async Task<IActionResult> GetCustomerInfo(Guid token)
+    {
+        var info = await _sessionService.GetSessionInfoAsync(token);
+        if (info == null)
+            return Unauthorized(new { success = false, message = "A sessão é inválida ou expirou." });
+
+        return Ok(new { success = true, data = info });
     }
 }
-
-public record GenerateSessionRequest(string PhoneNumber, string? Name);
-public record GenerateSessionResponse(Guid SessionId, string MagicLink, Guid CustomerId);
-public record ValidateSessionResponse(Guid CustomerId, DateTime ExpiresAt);

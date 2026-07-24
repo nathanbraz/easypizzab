@@ -23,6 +23,12 @@ public class EasyPizzaDbContext : DbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<CustomerAddress> CustomerAddresses { get; set; }
     
+    // Coupons
+    public DbSet<Coupon> Coupons { get; set; }
+    
+    // Couriers
+    public DbSet<Courier> Couriers { get; set; }
+    
     // Orders
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
@@ -69,6 +75,19 @@ public class EasyPizzaDbContext : DbContext
             .WithMany()
             .HasForeignKey(o => o.PaymentTypeId)
             .OnDelete(DeleteBehavior.Restrict);
+            
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Coupon)
+            .WithMany()
+            .HasForeignKey(o => o.CouponId)
+            .OnDelete(DeleteBehavior.SetNull);
+        
+        modelBuilder.Entity<Coupon>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.DiscountPercentage).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.DiscountFixedAmount).HasColumnType("decimal(18,2)");
+        });
         
         modelBuilder.Entity<OrderSession>(entity =>
         {
@@ -99,6 +118,7 @@ public class EasyPizzaDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18,2)");
             entity.Property(e => e.DeliveryFee).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
             entity.HasMany(e => e.Items).WithOne(e => e.Order).HasForeignKey(e => e.OrderId);
         });

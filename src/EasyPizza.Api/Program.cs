@@ -1,6 +1,7 @@
 using EasyPizza.Api.Services;
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Application.Interfaces.Services;
+using EasyPizza.Application.Interfaces;
 using EasyPizza.Application.Services;
 using EasyPizza.Infrastructure.Data;
 using EasyPizza.Infrastructure.Repositories;
@@ -47,12 +48,16 @@ builder.Services.AddDbContext<EasyPizzaDbContext>((serviceProvider, options) =>
 });
 
 // DI for Repositories and Services
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<ICouponRepository, CouponRepository>();
+builder.Services.AddScoped<ICourierRepository, CourierRepository>();
 
 var app = builder.Build();
 

@@ -24,7 +24,12 @@ public class Order : Entity
     public OrderStatus Status { get; private set; }
     public decimal SubTotal { get; private set; }
     public decimal DeliveryFee { get; private set; }
+    public decimal DiscountAmount { get; private set; }
     public decimal TotalAmount { get; private set; }
+
+    // Coupon applied
+    public Guid? CouponId { get; private set; }
+    public string? CouponCode { get; private set; }
     
     // Pix generated code payload
     public string? PixCopyPasteCode { get; private set; }
@@ -36,19 +41,25 @@ public class Order : Entity
     public Customer? Customer { get; private set; }
     public CustomerAddress? Address { get; private set; }
     public PaymentType? PaymentType { get; private set; }
+    public Coupon? Coupon { get; private set; }
     
     public ICollection<OrderItem> Items { get; private set; } = new List<OrderItem>();
 
     protected Order() { }
 
-    public Order(Guid customerId, Guid customerAddressId, Guid paymentTypeId, decimal subTotal, decimal deliveryFee)
+    public Order(Guid customerId, Guid customerAddressId, Guid paymentTypeId, decimal subTotal, decimal deliveryFee, decimal discountAmount = 0, Guid? couponId = null, string? couponCode = null)
     {
         CustomerId = customerId;
         CustomerAddressId = customerAddressId;
         PaymentTypeId = paymentTypeId;
         SubTotal = subTotal;
         DeliveryFee = deliveryFee;
-        TotalAmount = subTotal + deliveryFee;
+        DiscountAmount = discountAmount;
+        CouponId = couponId;
+        CouponCode = couponCode;
+        TotalAmount = (subTotal + deliveryFee) - discountAmount;
+        if (TotalAmount < 0) TotalAmount = 0;
+        
         Status = OrderStatus.New;
         IsPaid = false;
     }
