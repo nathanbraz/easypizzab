@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EasyPizza.Api/EasyPizza.Api.csproj" />
+    <Project Path="src/EasyPizza.Application/EasyPizza.Application.csproj" />
+    <Project Path="src/EasyPizza.Domain/EasyPizza.Domain.csproj" />
+    <Project Path="src/EasyPizza.Infrastructure/EasyPizza.Infrastructure.csproj" />
+  </Folder>
+</Solution>

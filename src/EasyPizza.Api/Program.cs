@@ -1,0 +1,70 @@
+using EasyPizza.Api.Services;
+using EasyPizza.Application.Interfaces.Repositories;
+using EasyPizza.Application.Interfaces.Services;
+using EasyPizza.Application.Services;
+using EasyPizza.Infrastructure.Data;
+using EasyPizza.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddOpenApi();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
+// DI for Master DB
+builder.Services.AddDbContext<MasterDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("MasterConnection")));
+
+// DI for Tenant Resolution
+builder.Services.AddScoped<ITenantProvider, HttpTenantProvider>();
+
+// DI for Tenant DB (Dynamic Connection String)
+builder.Services.AddDbContext<EasyPizzaDbContext>((serviceProvider, options) =>
+{
+    var tenantProvider = serviceProvider.GetRequiredService<ITenantProvider>();
+    var connectionString = tenantProvider.GetConnectionString();
+    
+    // If no connection string is found (e.g. invalid tenant or running migrations), use a fallback or throw
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        // We can fallback to a dummy connection string just to allow EF tooling to work
+        connectionString = builder.Configuration.GetConnectionString("DummyTenantConnection") ?? "Host=localhost;Database=dummy;Username=postgres;Password=postgres";
+    }
+    
+    options.UseNpgsql(connectionString);
+});
+
+// DI for Repositories and Services
+builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ICatalogService, CatalogService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
