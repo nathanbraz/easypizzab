@@ -17,8 +17,8 @@ public class CatalogRepository : ICatalogRepository
     public async Task<IEnumerable<ProductCategory>> GetCategoriesWithProductsAsync()
     {
         return await _context.ProductCategories
+            .Include(c => c.Addons)
             .Include(c => c.Products)
-            .ThenInclude(p => p.Addons)
             .OrderBy(c => c.DisplayOrder)
             .ToListAsync();
     }
@@ -26,7 +26,6 @@ public class CatalogRepository : ICatalogRepository
     public async Task<Product?> GetProductByIdAsync(Guid productId)
     {
         return await _context.Products
-            .Include(p => p.Addons)
             .FirstOrDefaultAsync(p => p.Id == productId);
     }
 }

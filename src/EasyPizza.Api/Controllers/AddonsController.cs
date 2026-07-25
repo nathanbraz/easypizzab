@@ -8,9 +8,9 @@ namespace EasyPizza.Api.Controllers;
 [Route("api/[controller]")]
 public class AddonsController : ControllerBase
 {
-    private readonly IRepository<ProductAddon> _repository;
+    private readonly IRepository<CategoryAddon> _repository;
 
-    public AddonsController(IRepository<ProductAddon> repository)
+    public AddonsController(IRepository<CategoryAddon> repository)
     {
         _repository = repository;
     }
@@ -25,7 +25,7 @@ public class AddonsController : ControllerBase
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> Create(string tenantSlug, [FromBody] CreateAddonRequest request)
     {
-        var addon = new ProductAddon(request.ProductId, request.Name, request.AdditionalPrice);
+        var addon = new CategoryAddon(request.CategoryId, request.Name, request.AdditionalPrice);
         await _repository.AddAsync(addon);
         await _repository.SaveChangesAsync();
         return Ok(addon);
@@ -57,5 +57,5 @@ public class AddonsController : ControllerBase
     }
 }
 
-public record CreateAddonRequest(Guid ProductId, string Name, decimal AdditionalPrice);
+public record CreateAddonRequest(Guid CategoryId, string Name, decimal AdditionalPrice);
 public record UpdateAddonRequest(string Name, decimal AdditionalPrice);

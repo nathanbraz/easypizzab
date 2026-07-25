@@ -12,6 +12,8 @@ public class CustomerAddress : Entity
     public string State { get; private set; }
     public string ZipCode { get; private set; }
     public string? Complement { get; private set; }
+    public double? Latitude { get; private set; }
+    public double? Longitude { get; private set; }
     
     // Usually customers have a main address
     public bool IsDefault { get; private set; }
@@ -20,7 +22,7 @@ public class CustomerAddress : Entity
 
     protected CustomerAddress() { }
 
-    public CustomerAddress(Guid customerId, string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null, bool isDefault = false)
+    public CustomerAddress(Guid customerId, string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null, bool isDefault = false, double? latitude = null, double? longitude = null)
     {
         CustomerId = customerId;
         Street = street;
@@ -31,6 +33,8 @@ public class CustomerAddress : Entity
         ZipCode = zipCode;
         Complement = complement;
         IsDefault = isDefault;
+        Latitude = latitude;
+        Longitude = longitude;
     }
 
     public void SetAsDefault()

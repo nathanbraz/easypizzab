@@ -31,12 +31,12 @@ public class CustomerService : ICustomerService
         return customer;
     }
 
-    public async Task<CustomerAddress?> UpdateCustomerAddressAsync(Guid customerId, string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null)
+    public async Task<CustomerAddress?> UpdateCustomerAddressAsync(Guid customerId, string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null, double? latitude = null, double? longitude = null)
     {
         var customer = await _repository.GetByIdAsync(customerId);
         if (customer != null)
         {
-            var address = new CustomerAddress(customerId, street, number, neighborhood, city, state, zipCode, complement, true);
+            var address = new CustomerAddress(customerId, street, number, neighborhood, city, state, zipCode, complement, true, latitude, longitude);
             customer.Addresses.Add(address);
             await _repository.SaveChangesAsync();
             return address;

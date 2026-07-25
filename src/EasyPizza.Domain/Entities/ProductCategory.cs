@@ -8,6 +8,7 @@ public class ProductCategory : Entity
     public int DisplayOrder { get; private set; }
 
     public ICollection<Product> Products { get; private set; } = new List<Product>();
+    public ICollection<CategoryAddon> Addons { get; private set; } = new List<CategoryAddon>();
 
     public ProductCategory(string name, int displayOrder = 0)
     {

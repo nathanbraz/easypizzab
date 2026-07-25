@@ -48,6 +48,7 @@ public class CouponsController : ControllerBase
 
         var coupon = new Coupon(request.Code, request.DiscountPercentage, request.DiscountFixedAmount, request.ExpiresAt, request.UsageLimit);
         await _couponRepository.AddAsync(coupon);
+        await _couponRepository.SaveChangesAsync();
         
         return CreatedAtAction(nameof(GetById), new { id = coupon.Id }, coupon);
     }
@@ -60,6 +61,7 @@ public class CouponsController : ControllerBase
 
         coupon.UpdateDetails(request.DiscountPercentage, request.DiscountFixedAmount, request.ExpiresAt, request.UsageLimit, request.IsActive);
         await _couponRepository.UpdateAsync(coupon);
+        await _couponRepository.SaveChangesAsync();
         
         return NoContent();
     }

@@ -11,12 +11,21 @@ public enum OrderStatus
     Canceled = 5
 }
 
+public enum OrderType
+{
+    Delivery = 1,
+    Pickup = 2
+}
+
 public class Order : Entity
 {
     public Guid CustomerId { get; private set; }
     
-    // Address where the order will be delivered (Can be null if it's pickup, but let's assume delivery for now)
-    public Guid CustomerAddressId { get; private set; }
+    // Address where the order will be delivered (null if it's pickup)
+    public Guid? CustomerAddressId { get; private set; }
+    
+    // Delivery or Pickup
+    public OrderType Type { get; private set; }
     
     // Payment method chosen
     public Guid PaymentTypeId { get; private set; }
@@ -47,13 +56,14 @@ public class Order : Entity
 
     protected Order() { }
 
-    public Order(Guid customerId, Guid customerAddressId, Guid paymentTypeId, decimal subTotal, decimal deliveryFee, decimal discountAmount = 0, Guid? couponId = null, string? couponCode = null)
+    public Order(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, decimal subTotal, decimal deliveryFee, decimal discountAmount = 0, Guid? couponId = null, string? couponCode = null)
     {
         CustomerId = customerId;
         CustomerAddressId = customerAddressId;
+        Type = type;
         PaymentTypeId = paymentTypeId;
         SubTotal = subTotal;
-        DeliveryFee = deliveryFee;
+        DeliveryFee = type == OrderType.Pickup ? 0 : deliveryFee;
         DiscountAmount = discountAmount;
         CouponId = couponId;
         CouponCode = couponCode;

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 {
     [DbContext(typeof(EasyPizzaDbContext))]
-    partial class EasyPizzaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260725010611_AddStoreSettings")]
+    partial class AddStoreSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,35 +25,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("EasyPizza.Domain.Entities.CategoryAddon", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("AdditionalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("CategoryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("CategoryAddons");
-                });
 
             modelBuilder.Entity("EasyPizza.Domain.Entities.Coupon", b =>
                 {
@@ -222,7 +196,7 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("CustomerAddressId")
+                    b.Property<Guid>("CustomerAddressId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CustomerId")
@@ -254,9 +228,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -320,9 +291,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("CategoryAddonId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -332,14 +300,17 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid>("ProductAddonId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryAddonId");
-
                     b.HasIndex("OrderItemId");
+
+                    b.HasIndex("ProductAddonId");
 
                     b.ToTable("OrderItemAddons");
                 });
@@ -506,6 +477,35 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         });
                 });
 
+            modelBuilder.Entity("EasyPizza.Domain.Entities.ProductAddon", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AdditionalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductAddons");
+                });
+
             modelBuilder.Entity("EasyPizza.Domain.Entities.ProductCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -558,9 +558,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Property<bool>("AcceptingPickup")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("ActiveGlobalCouponCode")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -593,17 +590,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.ToTable("StoreSettings");
                 });
 
-            modelBuilder.Entity("EasyPizza.Domain.Entities.CategoryAddon", b =>
-                {
-                    b.HasOne("EasyPizza.Domain.Entities.ProductCategory", "Category")
-                        .WithMany("Addons")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("EasyPizza.Domain.Entities.CustomerAddress", b =>
                 {
                     b.HasOne("EasyPizza.Domain.Entities.Customer", "Customer")
@@ -625,7 +611,8 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.HasOne("EasyPizza.Domain.Entities.CustomerAddress", "Address")
                         .WithMany()
                         .HasForeignKey("CustomerAddressId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("EasyPizza.Domain.Entities.Customer", "Customer")
                         .WithMany()
@@ -669,21 +656,21 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 
             modelBuilder.Entity("EasyPizza.Domain.Entities.OrderItemAddon", b =>
                 {
-                    b.HasOne("EasyPizza.Domain.Entities.CategoryAddon", "CategoryAddon")
-                        .WithMany()
-                        .HasForeignKey("CategoryAddonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("EasyPizza.Domain.Entities.OrderItem", "OrderItem")
                         .WithMany("Addons")
                         .HasForeignKey("OrderItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("CategoryAddon");
+                    b.HasOne("EasyPizza.Domain.Entities.ProductAddon", "ProductAddon")
+                        .WithMany()
+                        .HasForeignKey("ProductAddonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("OrderItem");
+
+                    b.Navigation("ProductAddon");
                 });
 
             modelBuilder.Entity("EasyPizza.Domain.Entities.OrderSession", b =>
@@ -708,6 +695,17 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("EasyPizza.Domain.Entities.ProductAddon", b =>
+                {
+                    b.HasOne("EasyPizza.Domain.Entities.Product", "Product")
+                        .WithMany("Addons")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("EasyPizza.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("Addresses");
@@ -725,10 +723,13 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Navigation("Addons");
                 });
 
-            modelBuilder.Entity("EasyPizza.Domain.Entities.ProductCategory", b =>
+            modelBuilder.Entity("EasyPizza.Domain.Entities.Product", b =>
                 {
                     b.Navigation("Addons");
+                });
 
+            modelBuilder.Entity("EasyPizza.Domain.Entities.ProductCategory", b =>
+                {
                     b.Navigation("Products");
                 });
 #pragma warning restore 612, 618

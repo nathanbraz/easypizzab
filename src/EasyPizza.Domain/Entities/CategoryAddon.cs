@@ -2,17 +2,17 @@ using EasyPizza.Domain.Common;
 
 namespace EasyPizza.Domain.Entities;
 
-public class ProductAddon : Entity
+public class CategoryAddon : Entity
 {
-    public Guid ProductId { get; private set; }
+    public Guid CategoryId { get; private set; }
     public string Name { get; private set; }
     public decimal AdditionalPrice { get; private set; }
 
-    public Product? Product { get; private set; }
+    public ProductCategory? Category { get; private set; }
 
-    public ProductAddon(Guid productId, string name, decimal additionalPrice)
+    public CategoryAddon(Guid categoryId, string name, decimal additionalPrice)
     {
-        ProductId = productId;
+        CategoryId = categoryId;
         Name = name;
         AdditionalPrice = additionalPrice;
     }

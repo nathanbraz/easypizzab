@@ -7,16 +7,50 @@ namespace EasyPizza.Application.Services;
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _repository;
+    private readonly IStoreSettingsRepository _settingsRepository;
+    private readonly IPaymentTypeRepository _paymentTypeRepository;
 
-    public OrderService(IOrderRepository repository)
+    public OrderService(IOrderRepository repository, IStoreSettingsRepository settingsRepository, IPaymentTypeRepository paymentTypeRepository)
     {
         _repository = repository;
+        _settingsRepository = settingsRepository;
+        _paymentTypeRepository = paymentTypeRepository;
     }
 
-    public async Task<Order> CreateOrderAsync(Guid customerId, Guid customerAddressId, Guid paymentTypeId, List<(Guid productId, int quantity, decimal unitPrice)> items, decimal deliveryFee)
+    public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<(Guid productId, int quantity, decimal unitPrice)> items)
     {
         var subTotal = items.Sum(i => i.quantity * i.unitPrice);
-        var order = new Order(customerId, customerAddressId, paymentTypeId, subTotal, deliveryFee);
+        
+        // --- 1. Settings Validation ---
+        var settings = await _settingsRepository.GetSettingsAsync();
+        
+        if (!settings.IsStoreOpen)
+            throw new InvalidOperationException("A loja está fechada no momento.");
+            
+        if (subTotal < settings.MinimumOrderAmount)
+            throw new InvalidOperationException($"O pedido mínimo é de {settings.MinimumOrderAmount:C}.");
+
+        if (type == OrderType.Delivery && !settings.AcceptingDelivery)
+            throw new InvalidOperationException("A loja não está aceitando delivery no momento.");
+            
+        if (type == OrderType.Pickup && !settings.AcceptingPickup)
+            throw new InvalidOperationException("A loja não está aceitando retirada no momento.");
+
+        var paymentType = await _paymentTypeRepository.GetByIdAsync(paymentTypeId);
+        if (paymentType == null || !paymentType.IsActive)
+            throw new InvalidOperationException("Forma de pagamento inválida ou indisponível.");
+
+        // --- 2. Calculate Delivery Fee ---
+        decimal deliveryFee = 0;
+        if (type == OrderType.Delivery)
+        {
+            if (settings.FreeDeliveryThreshold.HasValue && subTotal >= settings.FreeDeliveryThreshold.Value)
+                deliveryFee = 0;
+            else
+                deliveryFee = settings.DeliveryFee;
+        }
+
+        var order = new Order(customerId, customerAddressId, type, paymentTypeId, subTotal, deliveryFee);
 
         foreach (var item in items)
         {

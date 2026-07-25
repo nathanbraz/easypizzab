@@ -19,10 +19,17 @@ public class OrdersController : ControllerBase
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> CreateOrder(string tenantSlug, [FromBody] CreateOrderRequest request)
     {
-        var items = request.Items.Select(i => (i.ProductId, i.Quantity, i.UnitPrice)).ToList();
-        var order = await _orderService.CreateOrderAsync(request.CustomerId, request.CustomerAddressId, request.PaymentTypeId, items, request.DeliveryFee);
-        
-        return CreatedAtAction(nameof(GetOrders), new { tenantSlug = tenantSlug }, order);
+        try 
+        {
+            var items = request.Items.Select(i => (i.ProductId, i.Quantity, i.UnitPrice)).ToList();
+            var order = await _orderService.CreateOrderAsync(request.CustomerId, request.CustomerAddressId, request.Type, request.PaymentTypeId, items);
+            
+            return CreatedAtAction(nameof(GetOrders), new { tenantSlug = tenantSlug }, order);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     // Admin Endpoint: KDS
@@ -42,6 +49,6 @@ public class OrdersController : ControllerBase
     }
 }
 
-public record CreateOrderRequest(Guid CustomerId, Guid CustomerAddressId, Guid PaymentTypeId, List<OrderItemRequest> Items, decimal DeliveryFee);
+public record CreateOrderRequest(Guid CustomerId, Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items);
 public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice);
 public record UpdateStatusRequest(OrderStatus Status);

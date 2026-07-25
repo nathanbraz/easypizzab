@@ -26,9 +26,9 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> Create(string tenantSlug, [FromBody] CreateProductRequest request)
     {
         var product = new Product(request.CategoryId, request.Name, request.Description, request.Price);
-        if (!string.IsNullOrEmpty(request.ImageUrl))
+        if (request.ImageUrls != null && request.ImageUrls.Any())
         {
-            product.UpdateDetails(request.Name, request.Description, request.Price, request.ImageUrl, true);
+            product.UpdateDetails(request.Name, request.Description, request.Price, request.ImageUrls, true);
         }
         await _repository.AddAsync(product);
         await _repository.SaveChangesAsync();
@@ -41,7 +41,7 @@ public class ProductsController : ControllerBase
         var product = await _repository.GetByIdAsync(id);
         if (product == null) return NotFound();
 
-        product.UpdateDetails(request.Name, request.Description, request.Price, request.ImageUrl, request.IsAvailable);
+        product.UpdateDetails(request.Name, request.Description, request.Price, request.ImageUrls ?? new List<string>(), request.IsAvailable);
         await _repository.UpdateAsync(product);
         await _repository.SaveChangesAsync();
 
@@ -61,5 +61,5 @@ public class ProductsController : ControllerBase
     }
 }
 
-public record CreateProductRequest(Guid CategoryId, string Name, string Description, decimal Price, string? ImageUrl);
-public record UpdateProductRequest(string Name, string Description, decimal Price, string? ImageUrl, bool IsAvailable);
+public record CreateProductRequest(Guid CategoryId, string Name, string Description, decimal Price, List<string>? ImageUrls);
+public record UpdateProductRequest(string Name, string Description, decimal Price, List<string>? ImageUrls, bool IsAvailable);

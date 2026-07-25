@@ -8,11 +8,10 @@ public class Product : Entity
     public string Name { get; private set; }
     public string Description { get; private set; }
     public decimal Price { get; private set; }
-    public string? ImageUrl { get; private set; }
+    public List<string> ImageUrls { get; private set; } = new();
     public bool IsAvailable { get; private set; }
 
     public ProductCategory? Category { get; private set; }
-    public ICollection<ProductAddon> Addons { get; private set; } = new List<ProductAddon>();
 
     public Product(Guid categoryId, string name, string description, decimal price)
     {
@@ -23,12 +22,12 @@ public class Product : Entity
         IsAvailable = true;
     }
 
-    public void UpdateDetails(string name, string description, decimal price, string? imageUrl, bool isAvailable)
+    public void UpdateDetails(string name, string description, decimal price, List<string> imageUrls, bool isAvailable)
     {
         Name = name;
         Description = description;
         Price = price;
-        ImageUrl = imageUrl;
+        ImageUrls = imageUrls ?? new List<string>();
         IsAvailable = isAvailable;
         SetUpdatedAt();
     }

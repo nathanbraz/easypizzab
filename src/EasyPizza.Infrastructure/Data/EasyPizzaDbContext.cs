@@ -9,6 +9,12 @@ public class EasyPizzaDbContext : DbContext
     {
     }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        base.OnConfiguring(optionsBuilder);
+    }
+
     // Injeção opcional no OnConfiguring para cenários onde a connection string não foi passada nas options globais
     // Mas a melhor prática é configurar a resolução dinâmica no Program.cs
 
@@ -17,7 +23,7 @@ public class EasyPizzaDbContext : DbContext
     // Catalog
     public DbSet<ProductCategory> ProductCategories { get; set; }
     public DbSet<Product> Products { get; set; }
-    public DbSet<ProductAddon> ProductAddons { get; set; }
+    public DbSet<CategoryAddon> CategoryAddons { get; set; }
     
     // Customers
     public DbSet<Customer> Customers { get; set; }
@@ -35,6 +41,9 @@ public class EasyPizzaDbContext : DbContext
     public DbSet<OrderItemAddon> OrderItemAddons { get; set; }
     public DbSet<OrderSession> OrderSessions { get; set; }
     public DbSet<PaymentType> PaymentTypes { get; set; }
+    
+    // Settings
+    public DbSet<StoreSettings> StoreSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,16 +107,16 @@ public class EasyPizzaDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasMany(e => e.Products).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
+            entity.HasMany(e => e.Addons).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
         });
 
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
-            entity.HasMany(e => e.Addons).WithOne(e => e.Product).HasForeignKey(e => e.ProductId);
         });
 
-        modelBuilder.Entity<ProductAddon>(entity =>
+        modelBuilder.Entity<CategoryAddon>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.AdditionalPrice).HasColumnType("decimal(18,2)");
@@ -136,6 +145,14 @@ public class EasyPizzaDbContext : DbContext
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
         });
 
+        modelBuilder.Entity<StoreSettings>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.DeliveryFee).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.MinimumOrderAmount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.FreeDeliveryThreshold).HasColumnType("decimal(18,2)");
+        });
+
         // --- Data Seeding ---
         var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         
@@ -158,9 +175,9 @@ public class EasyPizzaDbContext : DbContext
         );
 
         modelBuilder.Entity<Product>().HasData(
-            new { Id = Guid.Parse("8ebde348-18e3-4c07-b358-fc24d1eb4df4"), CategoryId = pizzaCatId, Name = "Calabresa", Description = "Muçarela, calabresa e cebola", Price = 49.90m, IsAvailable = true, CreatedAt = seedDate },
-            new { Id = Guid.Parse("a0f7c1d3-3b12-4c28-98e3-f61b0c034298"), CategoryId = pizzaCatId, Name = "Marguerita", Description = "Muçarela, tomate e manjericão fresco", Price = 45.00m, IsAvailable = true, CreatedAt = seedDate },
-            new { Id = Guid.Parse("18f3a382-3d84-46b2-a4f6-8c4d28d0b8c4"), CategoryId = drinkCatId, Name = "Coca-Cola 2L", Description = "Refrigerante 2 Litros", Price = 14.00m, IsAvailable = true, CreatedAt = seedDate }
+            new { Id = Guid.Parse("8ebde348-18e3-4c07-b358-fc24d1eb4df4"), CategoryId = pizzaCatId, Name = "Calabresa", Description = "Muçarela, calabresa e cebola", Price = 49.90m, ImageUrls = new List<string>(), IsAvailable = true, CreatedAt = seedDate },
+            new { Id = Guid.Parse("a0f7c1d3-3b12-4c28-98e3-f61b0c034298"), CategoryId = pizzaCatId, Name = "Marguerita", Description = "Muçarela, tomate e manjericão fresco", Price = 45.00m, ImageUrls = new List<string>(), IsAvailable = true, CreatedAt = seedDate },
+            new { Id = Guid.Parse("18f3a382-3d84-46b2-a4f6-8c4d28d0b8c4"), CategoryId = drinkCatId, Name = "Coca-Cola 2L", Description = "Refrigerante 2 Litros", Price = 14.00m, ImageUrls = new List<string>(), IsAvailable = true, CreatedAt = seedDate }
         );
 
     }

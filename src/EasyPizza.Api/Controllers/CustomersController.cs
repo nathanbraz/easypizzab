@@ -28,11 +28,11 @@ public class CustomersController : ControllerBase
     {
         var address = await _customerService.UpdateCustomerAddressAsync(
             id, request.Street, request.Number, request.Neighborhood, 
-            request.City, request.State, request.ZipCode, request.Complement);
+            request.City, request.State, request.ZipCode, request.Complement, request.Latitude, request.Longitude);
             
         return Ok(address);
     }
 }
 
 public record RegisterCustomerRequest(string PhoneNumber, string? Name);
-public record UpdateAddressRequest(string Street, string Number, string Neighborhood, string City, string State, string ZipCode, string? Complement);
+public record UpdateAddressRequest(string Street, string Number, string Neighborhood, string City, string State, string ZipCode, string? Complement, double? Latitude, double? Longitude);
