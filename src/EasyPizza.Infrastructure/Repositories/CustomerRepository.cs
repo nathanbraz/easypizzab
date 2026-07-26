@@ -13,6 +13,11 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 
     public async Task<Customer?> GetByPhoneNumberAsync(string phoneNumber)
     {
-        return await _dbSet.FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber);
+        return await _dbSet.Include(c => c.Addresses).FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber);
+    }
+
+    public override async Task<Customer?> GetByIdAsync(Guid id)
+    {
+        return await _dbSet.Include(c => c.Addresses).FirstOrDefaultAsync(c => c.Id == id);
     }
 }

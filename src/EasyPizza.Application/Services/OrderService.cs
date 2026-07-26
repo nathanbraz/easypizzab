@@ -9,15 +9,17 @@ public class OrderService : IOrderService
     private readonly IOrderRepository _repository;
     private readonly IStoreSettingsRepository _settingsRepository;
     private readonly IPaymentTypeRepository _paymentTypeRepository;
+    private readonly ICouponRepository _couponRepository;
 
-    public OrderService(IOrderRepository repository, IStoreSettingsRepository settingsRepository, IPaymentTypeRepository paymentTypeRepository)
+    public OrderService(IOrderRepository repository, IStoreSettingsRepository settingsRepository, IPaymentTypeRepository paymentTypeRepository, ICouponRepository couponRepository)
     {
         _repository = repository;
         _settingsRepository = settingsRepository;
         _paymentTypeRepository = paymentTypeRepository;
+        _couponRepository = couponRepository;
     }
 
-    public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<(Guid productId, int quantity, decimal unitPrice)> items)
+    public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<(Guid productId, int quantity, decimal unitPrice)> items, string? couponCode = null)
     {
         var subTotal = items.Sum(i => i.quantity * i.unitPrice);
         
@@ -50,7 +52,29 @@ public class OrderService : IOrderService
                 deliveryFee = settings.DeliveryFee;
         }
 
-        var order = new Order(customerId, customerAddressId, type, paymentTypeId, subTotal, deliveryFee);
+        // --- 3. Validate and Apply Coupon ---
+        decimal discountAmount = 0;
+        Guid? couponId = null;
+        if (!string.IsNullOrWhiteSpace(couponCode))
+        {
+            var coupon = await _couponRepository.GetByCodeAsync(couponCode);
+            if (coupon != null && coupon.IsValid())
+            {
+                if (coupon.DiscountPercentage.HasValue && coupon.DiscountPercentage.Value > 0)
+                {
+                    discountAmount = subTotal * (coupon.DiscountPercentage.Value / 100m);
+                }
+                else if (coupon.DiscountFixedAmount.HasValue && coupon.DiscountFixedAmount.Value > 0)
+                {
+                    discountAmount = coupon.DiscountFixedAmount.Value;
+                }
+                couponId = coupon.Id;
+                coupon.RegisterUsage();
+                await _couponRepository.UpdateAsync(coupon);
+            }
+        }
+
+        var order = new Order(customerId, customerAddressId, type, paymentTypeId, subTotal, deliveryFee, discountAmount, couponId, couponCode);
 
         foreach (var item in items)
         {
@@ -66,6 +90,16 @@ public class OrderService : IOrderService
     public async Task<IEnumerable<Order>> GetOrdersAsync()
     {
         return await _repository.GetOrdersAsync();
+    }
+
+    public async Task<Order?> GetOrderByIdAsync(Guid orderId)
+    {
+        return await _repository.GetByIdAsync(orderId);
+    }
+
+    public async Task<IEnumerable<Order>> GetOrdersByCustomerAsync(Guid customerId)
+    {
+        return await _repository.GetOrdersByCustomerIdAsync(customerId);
     }
 
     public async Task UpdateOrderStatusAsync(Guid orderId, OrderStatus status)

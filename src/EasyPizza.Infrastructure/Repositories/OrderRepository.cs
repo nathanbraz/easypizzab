@@ -17,6 +17,23 @@ public class OrderRepository : Repository<Order>, IOrderRepository
             .Include(o => o.Items)
             .ThenInclude(i => i.Product)
             .Include(o => o.Customer)
+            .Include(o => o.Address)
+            .Include(o => o.PaymentType)
+            .Include(o => o.Coupon)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Order>> GetOrdersByCustomerIdAsync(Guid customerId)
+    {
+        return await _dbSet
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Product)
+            .Include(o => o.Customer)
+            .Include(o => o.Address)
+            .Include(o => o.PaymentType)
+            .Include(o => o.Coupon)
+            .Where(o => o.CustomerId == customerId)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
     }
@@ -27,6 +44,9 @@ public class OrderRepository : Repository<Order>, IOrderRepository
             .Include(o => o.Items)
             .ThenInclude(i => i.Product)
             .Include(o => o.Customer)
+            .Include(o => o.Address)
+            .Include(o => o.PaymentType)
+            .Include(o => o.Coupon)
             .FirstOrDefaultAsync(o => o.Id == orderId);
     }
 
@@ -35,6 +55,10 @@ public class OrderRepository : Repository<Order>, IOrderRepository
         return await _dbSet
             .Include(o => o.Items)
             .ThenInclude(i => i.Product)
+            .Include(o => o.Customer)
+            .Include(o => o.Address)
+            .Include(o => o.PaymentType)
+            .Include(o => o.Coupon)
             .Where(o => o.CustomerId == customerId)
             .OrderByDescending(o => o.CreatedAt)
             .FirstOrDefaultAsync();

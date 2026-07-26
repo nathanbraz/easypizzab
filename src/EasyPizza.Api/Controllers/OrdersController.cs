@@ -22,14 +22,36 @@ public class OrdersController : ControllerBase
         try 
         {
             var items = request.Items.Select(i => (i.ProductId, i.Quantity, i.UnitPrice)).ToList();
-            var order = await _orderService.CreateOrderAsync(request.CustomerId, request.CustomerAddressId, request.Type, request.PaymentTypeId, items);
+            var order = await _orderService.CreateOrderAsync(request.CustomerId, request.CustomerAddressId, request.Type, request.PaymentTypeId, items, request.CouponCode);
             
-            return CreatedAtAction(nameof(GetOrders), new { tenantSlug = tenantSlug }, order);
+            return Ok(new
+            {
+                success = true,
+                message = "Pedido realizado com sucesso!",
+                data = order
+            });
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { success = false, error = ex.Message });
         }
+    }
+
+    // Customer Endpoint: Get order by id
+    [HttpGet("{tenantSlug}/{orderId:guid}")]
+    public async Task<IActionResult> GetOrderById(string tenantSlug, Guid orderId)
+    {
+        var order = await _orderService.GetOrderByIdAsync(orderId);
+        if (order == null) return NotFound(new { success = false, message = "Pedido não encontrado." });
+        return Ok(new { success = true, data = order });
+    }
+
+    // Customer Endpoint: Get orders by customer
+    [HttpGet("{tenantSlug}/customer/{customerId:guid}")]
+    public async Task<IActionResult> GetOrdersByCustomer(string tenantSlug, Guid customerId)
+    {
+        var orders = await _orderService.GetOrdersByCustomerAsync(customerId);
+        return Ok(new { success = true, data = orders });
     }
 
     // Admin Endpoint: KDS
@@ -49,6 +71,6 @@ public class OrdersController : ControllerBase
     }
 }
 
-public record CreateOrderRequest(Guid CustomerId, Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items);
+public record CreateOrderRequest(Guid CustomerId, Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items, string? CouponCode = null);
 public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice);
 public record UpdateStatusRequest(OrderStatus Status);

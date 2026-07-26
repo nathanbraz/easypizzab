@@ -38,16 +38,19 @@ public class SessionService : ISessionService
         {
             customer = new Customer(request.PhoneNumber, request.Name);
             await _customerRepository.AddAsync(customer);
+            await _customerRepository.SaveChangesAsync();
         }
         else if (!string.IsNullOrEmpty(request.Name) && customer.Name != request.Name)
         {
             customer.UpdateName(request.Name);
             await _customerRepository.UpdateAsync(customer);
+            await _customerRepository.SaveChangesAsync();
         }
 
         // Criar a sessão
         var session = new OrderSession(customer.Id);
         await _sessionRepository.AddAsync(session);
+        await _sessionRepository.SaveChangesAsync();
 
         // O link mágico gerado com o Slug do Tenant
         // BaseUrl será configurado no frontend. O backend só devolve o Path
@@ -79,11 +82,15 @@ public class SessionService : ISessionService
             summary = $"{lastOrder.Items.Count} item(s) - {firstItem.Product?.Name} {(lastOrder.Items.Count > 1 ? "..." : "")}";
         }
 
+        var defaultAddress = customer.Addresses.OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+
         return new SessionInfoResponse
         {
             SessionId = session.Id,
+            CustomerId = customer.Id,
             CustomerName = customer.Name ?? "Visitante",
             CustomerPhoneNumber = customer.PhoneNumber,
+            DefaultAddress = defaultAddress,
             LastOrderId = lastOrder?.Id,
             LastOrderSummary = summary
         };
