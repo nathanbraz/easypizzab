@@ -1,0 +1,26 @@
+### Teste 1: Enviar Saudação (Oi) para o Robô de WhatsApp
+POST http://localhost:5000/api/webhook/whatsapp/pizzariabrazil
+Content-Type: application/json
+
+{
+  "phone": "5511999999999",
+  "text": "Oi, boa noite!"
+}
+
+### Teste 2: Escolher Opção 1 (Gerar Cardápio Digital e Token Seguro)
+POST http://localhost:5000/api/webhook/whatsapp/pizzariabrazil
+Content-Type: application/json
+
+{
+  "phone": "5511999999999",
+  "text": "1"
+}
+
+### Teste 3: Escolher Opção 2 (Transbordo para Atendente Humano)
+POST http://localhost:5000/api/webhook/whatsapp/pizzariabrazil
+Content-Type: application/json
+
+{
+  "phone": "5511999999999",
+  "text": "2"
+}

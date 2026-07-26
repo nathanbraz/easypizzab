@@ -5,6 +5,7 @@ using EasyPizza.Application.Interfaces;
 using EasyPizza.Application.Services;
 using EasyPizza.Infrastructure.Data;
 using EasyPizza.Infrastructure.Repositories;
+using EasyPizza.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +65,8 @@ builder.Services.AddScoped<ICouponRepository, CouponRepository>();
 builder.Services.AddScoped<ICourierRepository, CourierRepository>();
 builder.Services.AddScoped<IStoreSettingsRepository, StoreSettingsRepository>();
 builder.Services.AddScoped<IPaymentTypeRepository, PaymentTypeRepository>();
+builder.Services.AddHttpClient<IWhatsappSender, EvolutionApiWhatsappSender>();
+builder.Services.AddScoped<IWhatsappBotService, WhatsappBotService>();
 
 var app = builder.Build();
 
