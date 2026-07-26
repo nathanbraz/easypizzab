@@ -47,7 +47,13 @@ public class SettingsController : ControllerBase
             request.AcceptingPickup,
             request.AcceptingDelivery,
             request.MessageOfTheDay,
-            request.ActiveGlobalCouponCode
+            request.ActiveGlobalCouponCode,
+            request.WhatsappBotEnabled,
+            request.WhatsappServerUrl,
+            request.WhatsappInstanceName,
+            request.WhatsappApiKey,
+            request.WhatsappSupportPhone,
+            request.WhatsappGreetingMessage
         );
 
         await _settingsRepository.UpdateAsync(settings);
@@ -78,7 +84,13 @@ public record UpdateSettingsRequest(
     bool AcceptingPickup,
     bool AcceptingDelivery,
     string? MessageOfTheDay,
-    string? ActiveGlobalCouponCode
+    string? ActiveGlobalCouponCode,
+    bool WhatsappBotEnabled,
+    string? WhatsappServerUrl,
+    string? WhatsappInstanceName,
+    string? WhatsappApiKey,
+    string? WhatsappSupportPhone,
+    string? WhatsappGreetingMessage
 );
 
 public record TogglePaymentRequest(bool IsActive);

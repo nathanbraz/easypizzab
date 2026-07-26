@@ -15,6 +15,14 @@ public class StoreSettings : Entity
     public string? MessageOfTheDay { get; private set; }
     public string? ActiveGlobalCouponCode { get; private set; }
 
+    // WhatsApp Bot & Webhook Settings
+    public bool WhatsappBotEnabled { get; private set; }
+    public string? WhatsappServerUrl { get; private set; }
+    public string? WhatsappInstanceName { get; private set; }
+    public string? WhatsappApiKey { get; private set; }
+    public string? WhatsappSupportPhone { get; private set; }
+    public string? WhatsappGreetingMessage { get; private set; }
+
     // Construtor vazio para o EF Core
     protected StoreSettings() { }
 
@@ -28,7 +36,13 @@ public class StoreSettings : Entity
         bool acceptingPickup, 
         bool acceptingDelivery, 
         string? messageOfTheDay,
-        string? activeGlobalCouponCode = null)
+        string? activeGlobalCouponCode = null,
+        bool whatsappBotEnabled = false,
+        string? whatsappServerUrl = null,
+        string? whatsappInstanceName = null,
+        string? whatsappApiKey = null,
+        string? whatsappSupportPhone = null,
+        string? whatsappGreetingMessage = null)
     {
         IsStoreOpen = isStoreOpen;
         DeliveryFee = deliveryFee;
@@ -40,6 +54,12 @@ public class StoreSettings : Entity
         AcceptingDelivery = acceptingDelivery;
         MessageOfTheDay = messageOfTheDay;
         ActiveGlobalCouponCode = activeGlobalCouponCode;
+        WhatsappBotEnabled = whatsappBotEnabled;
+        WhatsappServerUrl = whatsappServerUrl;
+        WhatsappInstanceName = whatsappInstanceName;
+        WhatsappApiKey = whatsappApiKey;
+        WhatsappSupportPhone = whatsappSupportPhone;
+        WhatsappGreetingMessage = whatsappGreetingMessage;
     }
 
     public void Update(
@@ -52,7 +72,13 @@ public class StoreSettings : Entity
         bool acceptingPickup, 
         bool acceptingDelivery, 
         string? messageOfTheDay,
-        string? activeGlobalCouponCode)
+        string? activeGlobalCouponCode,
+        bool whatsappBotEnabled = false,
+        string? whatsappServerUrl = null,
+        string? whatsappInstanceName = null,
+        string? whatsappApiKey = null,
+        string? whatsappSupportPhone = null,
+        string? whatsappGreetingMessage = null)
     {
         IsStoreOpen = isStoreOpen;
         DeliveryFee = deliveryFee;
@@ -64,6 +90,12 @@ public class StoreSettings : Entity
         AcceptingDelivery = acceptingDelivery;
         MessageOfTheDay = messageOfTheDay;
         ActiveGlobalCouponCode = activeGlobalCouponCode;
+        WhatsappBotEnabled = whatsappBotEnabled;
+        WhatsappServerUrl = whatsappServerUrl;
+        WhatsappInstanceName = whatsappInstanceName;
+        WhatsappApiKey = whatsappApiKey;
+        WhatsappSupportPhone = whatsappSupportPhone;
+        WhatsappGreetingMessage = whatsappGreetingMessage;
         SetUpdatedAt();
     }
 }

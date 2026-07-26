@@ -31,7 +31,13 @@ public class StoreSettingsRepository : IStoreSettingsRepository
                 acceptingPickup: true,
                 acceptingDelivery: true,
                 messageOfTheDay: null,
-                activeGlobalCouponCode: null
+                activeGlobalCouponCode: null,
+                whatsappBotEnabled: false,
+                whatsappServerUrl: "http://localhost:8080",
+                whatsappInstanceName: "pizzariabrazil",
+                whatsappApiKey: null,
+                whatsappSupportPhone: "5511999999999",
+                whatsappGreetingMessage: "Olá! Bem-vindo ao atendimento automático da Pizzaria Brazil! 🍕\n\nDigite 1 para acessar nosso Cardápio Digital\nDigite 2 para Falar com Atendente"
             );
             
             _context.StoreSettings.Add(settings);
