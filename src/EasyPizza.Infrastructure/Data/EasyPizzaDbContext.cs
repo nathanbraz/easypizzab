@@ -125,6 +125,7 @@ public class EasyPizzaDbContext : DbContext
         modelBuilder.Entity<Order>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18,2)");
             entity.Property(e => e.DeliveryFee).HasColumnType("decimal(18,2)");
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");

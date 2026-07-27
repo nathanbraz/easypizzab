@@ -38,7 +38,7 @@ public class OrderRepository : Repository<Order>, IOrderRepository
             .ToListAsync();
     }
 
-    public override async Task<Order?> GetByIdAsync(Guid orderId)
+    public async Task<Order?> GetByIdAsync(int orderId)
     {
         return await _dbSet
             .Include(o => o.Items)
@@ -48,6 +48,11 @@ public class OrderRepository : Repository<Order>, IOrderRepository
             .Include(o => o.PaymentType)
             .Include(o => o.Coupon)
             .FirstOrDefaultAsync(o => o.Id == orderId);
+    }
+
+    public override async Task<Order?> GetByIdAsync(Guid orderId)
+    {
+        return await Task.FromResult<Order?>(null);
     }
 
     public async Task<Order?> GetLastCustomerOrderAsync(Guid customerId)

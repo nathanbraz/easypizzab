@@ -87,7 +87,7 @@ public class OrderService(
         return await repository.GetOrdersAsync();
     }
 
-    public async Task<Order?> GetOrderByIdAsync(Guid orderId)
+    public async Task<Order?> GetOrderByIdAsync(int orderId)
     {
         return await repository.GetByIdAsync(orderId);
     }
@@ -97,7 +97,7 @@ public class OrderService(
         return await repository.GetOrdersByCustomerIdAsync(customerId);
     }
 
-    public async Task UpdateOrderStatusAsync(Guid orderId, OrderStatus status)
+    public async Task UpdateOrderStatusAsync(int orderId, OrderStatus status)
     {
         var order = await repository.GetByIdAsync(orderId);
         if (order != null)
@@ -121,7 +121,7 @@ public class OrderService(
             if (customer == null || string.IsNullOrWhiteSpace(customer.PhoneNumber))
                 return;
 
-            var shortId = order.Id.ToString()[..8].ToUpper();
+            var shortId = order.Id.ToString();
             string message = order.Status switch
             {
                 OrderStatus.New => $"🍕 *Pedido Recebido!*\n\nOlá {customer.Name ?? "Cliente"}, recebemos o seu pedido #{shortId} no valor de R$ {order.TotalAmount:F2}!\nEle já entrou na fila da nossa cozinha.",

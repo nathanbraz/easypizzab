@@ -9,6 +9,6 @@ public class SessionInfoResponse
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhoneNumber { get; set; } = string.Empty;
     public CustomerAddress? DefaultAddress { get; set; }
-    public Guid? LastOrderId { get; set; }
+    public int? LastOrderId { get; set; }
     public string? LastOrderSummary { get; set; }
 }

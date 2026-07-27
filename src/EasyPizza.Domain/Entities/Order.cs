@@ -17,7 +17,7 @@ public enum OrderType
     Pickup = 2
 }
 
-public class Order : Entity
+public class Order : IntEntity
 {
     public Guid CustomerId { get; private set; }
     

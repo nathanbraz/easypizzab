@@ -38,8 +38,8 @@ public class OrdersController : ControllerBase
     }
 
     // Customer Endpoint: Get order by id
-    [HttpGet("{tenantSlug}/{orderId:guid}")]
-    public async Task<IActionResult> GetOrderById(string tenantSlug, Guid orderId)
+    [HttpGet("{tenantSlug}/{orderId:int}")]
+    public async Task<IActionResult> GetOrderById(string tenantSlug, int orderId)
     {
         var order = await _orderService.GetOrderByIdAsync(orderId);
         if (order == null) return NotFound(new { success = false, message = "Pedido não encontrado." });
@@ -63,8 +63,8 @@ public class OrdersController : ControllerBase
     }
 
     // Admin Endpoint: Update KDS Status
-    [HttpPatch("admin/{tenantSlug}/{orderId:guid}/status")]
-    public async Task<IActionResult> UpdateStatus(string tenantSlug, Guid orderId, [FromBody] UpdateStatusRequest request)
+    [HttpPatch("admin/{tenantSlug}/{orderId:int}/status")]
+    public async Task<IActionResult> UpdateStatus(string tenantSlug, int orderId, [FromBody] UpdateStatusRequest request)
     {
         await _orderService.UpdateOrderStatusAsync(orderId, request.Status);
         return NoContent();
