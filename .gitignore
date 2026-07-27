@@ -480,3 +480,25 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Local Environment Variables & Secrets
+.env.*
+!.env.example
+*.local
+appsettings.*.local.json
+appsettings.local.json
+secrets.json
+*.secret.json
+*.key
+*.pem
+*.cert
+
+# AI Assistants & Agent Tools (Gemini, Copilot, Cursor, etc.)
+.gemini/
+.cursor/
+.continue/
+.github/copilot/
+
+# Additional Temporary / Working Directories
+tmp/
+temp/
