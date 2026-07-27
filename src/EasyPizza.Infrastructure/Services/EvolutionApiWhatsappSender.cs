@@ -42,18 +42,37 @@ public class EvolutionApiWhatsappSender : IWhatsappSender
         {
             var serverUrl = settings.WhatsappServerUrl.TrimEnd('/');
             var instanceName = !string.IsNullOrWhiteSpace(settings.WhatsappInstanceName) ? settings.WhatsappInstanceName : "pizzariabrazil";
-            var url = $"{serverUrl}/message/sendText/{instanceName}";
 
-            var payload = new
+            string url;
+            object payload;
+            var request = new HttpRequestMessage(HttpMethod.Post, "");
+
+            // Compatibilidade automática com UltraMsg (para testes na nuvem) e Evolution API (para produção/Docker)
+            if (serverUrl.Contains("ultramsg.com", StringComparison.OrdinalIgnoreCase))
             {
-                number = cleanPhone,
-                text = text,
-                delay = 1200 // 1.2s de digitação simulada para humanizar o bot
-            };
-
-            var request = new HttpRequestMessage(HttpMethod.Post, url);
-            request.Headers.Add("apikey", settings.WhatsappApiKey);
-            request.Content = JsonContent.Create(payload);
+                url = $"{serverUrl}/{instanceName}/messages/chat";
+                payload = new
+                {
+                    token = settings.WhatsappApiKey,
+                    to = cleanPhone,
+                    body = text
+                };
+                request.RequestUri = new Uri(url);
+                request.Content = JsonContent.Create(payload);
+            }
+            else
+            {
+                url = $"{serverUrl}/message/sendText/{instanceName}";
+                payload = new
+                {
+                    number = cleanPhone,
+                    text = text,
+                    delay = 1200 // 1.2s de digitação simulada para humanizar o bot
+                };
+                request.RequestUri = new Uri(url);
+                request.Headers.Add("apikey", settings.WhatsappApiKey);
+                request.Content = JsonContent.Create(payload);
+            }
 
             var response = await _httpClient.SendAsync(request);
 
