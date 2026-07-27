@@ -28,6 +28,7 @@ public class HttpTenantProvider : ITenantProvider
 
         // Try to get the tenant slug from the route, header, or query
         var tenantSlug = httpContext.Request.RouteValues["tenantSlug"]?.ToString() 
+                         ?? httpContext.Request.RouteValues["instanceName"]?.ToString()
                          ?? httpContext.Request.Headers["X-Tenant-Slug"].ToString()
                          ?? httpContext.Request.Query["tenantSlug"].ToString();
 

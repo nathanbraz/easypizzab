@@ -48,4 +48,18 @@ public class CustomerAddress : Entity
         IsDefault = false;
         SetUpdatedAt();
     }
+
+    public void UpdateAddress(string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null, double? latitude = null, double? longitude = null)
+    {
+        Street = street;
+        Number = number;
+        Neighborhood = neighborhood;
+        City = city;
+        State = state;
+        ZipCode = zipCode;
+        Complement = complement;
+        Latitude = latitude;
+        Longitude = longitude;
+        SetUpdatedAt();
+    }
 }

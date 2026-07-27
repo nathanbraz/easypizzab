@@ -7,10 +7,12 @@ namespace EasyPizza.Application.Services;
 public class CustomerService : ICustomerService
 {
     private readonly ICustomerRepository _repository;
+    private readonly IRepository<CustomerAddress> _addressRepository;
 
-    public CustomerService(ICustomerRepository repository)
+    public CustomerService(ICustomerRepository repository, IRepository<CustomerAddress> addressRepository)
     {
         _repository = repository;
+        _addressRepository = addressRepository;
     }
 
     public async Task<Customer> GetOrCreateCustomerAsync(string phoneNumber, string? name = null)
@@ -36,10 +38,19 @@ public class CustomerService : ICustomerService
         var customer = await _repository.GetByIdAsync(customerId);
         if (customer != null)
         {
-            var address = new CustomerAddress(customerId, street, number, neighborhood, city, state, zipCode, complement, true, latitude, longitude);
-            customer.Addresses.Add(address);
+            var existingAddress = customer.Addresses.FirstOrDefault();
+            if (existingAddress != null)
+            {
+                existingAddress.UpdateAddress(street, number, neighborhood, city, state, zipCode, complement, latitude, longitude);
+                await _addressRepository.UpdateAsync(existingAddress);
+            }
+            else
+            {
+                existingAddress = new CustomerAddress(customerId, street, number, neighborhood, city, state, zipCode, complement, true, latitude, longitude);
+                await _addressRepository.AddAsync(existingAddress);
+            }
             await _repository.SaveChangesAsync();
-            return address;
+            return existingAddress;
         }
         return null;
     }
