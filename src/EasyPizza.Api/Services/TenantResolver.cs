@@ -26,11 +26,29 @@ public class HttpTenantProvider : ITenantProvider
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext == null) return null;
 
-        // Try to get the tenant slug from the route, header, or query
-        var tenantSlug = httpContext.Request.RouteValues["tenantSlug"]?.ToString() 
-                         ?? httpContext.Request.RouteValues["instanceName"]?.ToString()
-                         ?? httpContext.Request.Headers["X-Tenant-Slug"].ToString()
-                         ?? httpContext.Request.Query["tenantSlug"].ToString();
+        // Extract hostname slug (e.g. "pizzatop" from "pizzatop.easypizza.com.br" or "pizzatop.lvh.me")
+        string? hostSlug = null;
+        var host = httpContext.Request.Host.Host;
+        if (!string.IsNullOrEmpty(host) && host.Contains('.'))
+        {
+            var parts = host.Split('.');
+            if (parts[0] != "www" && parts[0] != "localhost" && parts[0] != "api" && parts[0] != "admin" && parts[0] != "superadmin")
+            {
+                hostSlug = parts[0];
+            }
+        }
+
+        // Try to get the tenant slug from header (highest priority), then host, then route or query
+        var headerSlug = httpContext.Request.Headers["X-Tenant-Slug"].ToString();
+        var routeSlug = httpContext.Request.RouteValues["tenantSlug"]?.ToString();
+        var instanceSlug = httpContext.Request.RouteValues["instanceName"]?.ToString();
+        var querySlug = httpContext.Request.Query["tenantSlug"].ToString();
+
+        var tenantSlug = !string.IsNullOrWhiteSpace(headerSlug) ? headerSlug :
+                         !string.IsNullOrWhiteSpace(hostSlug) ? hostSlug :
+                         !string.IsNullOrWhiteSpace(routeSlug) ? routeSlug :
+                         !string.IsNullOrWhiteSpace(instanceSlug) ? instanceSlug :
+                         !string.IsNullOrWhiteSpace(querySlug) ? querySlug : null;
 
         if (string.IsNullOrEmpty(tenantSlug))
             return null;

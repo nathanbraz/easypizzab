@@ -10,30 +10,37 @@ public class WhatsappBotService : IWhatsappBotService
     private readonly IStoreSettingsRepository _settingsRepository;
     private readonly ISessionService _sessionService;
     private readonly IWhatsappSender _whatsappSender;
+    private readonly ITenantProvider _tenantProvider;
 
     public WhatsappBotService(
         IStoreSettingsRepository settingsRepository,
         ISessionService sessionService,
-        IWhatsappSender whatsappSender)
+        IWhatsappSender whatsappSender,
+        ITenantProvider tenantProvider)
     {
         _settingsRepository = settingsRepository;
         _sessionService = sessionService;
         _whatsappSender = whatsappSender;
+        _tenantProvider = tenantProvider;
     }
 
-    public async Task<string> GenerateOrderLinkAsync(string phone)
+    public async Task<string> GenerateOrderLinkAsync(string phone, string? name = null)
     {
         var sessionResponse = await _sessionService.GenerateMagicLinkSessionAsync(new GenerateSessionRequest
         {
-            PhoneNumber = phone
+            PhoneNumber = phone,
+            Name = name
         });
 
-        // Retorna o link mágico formatado (por padrão porta 3333 em desenvolvimento local)
-        var baseUrl = "http://localhost:3333";
-        return $"{baseUrl}{sessionResponse.MagicLink}";
+        var tenant = _tenantProvider.GetTenant();
+        var tenantSlug = tenant?.Slug ?? "pizzariabrazil";
+
+        // Retorna o link mágico formatado com subdomínio lvh.me em desenvolvimento local
+        var baseUrl = $"http://{tenantSlug}.lvh.me:3333";
+        return $"{baseUrl}/pedido?t={sessionResponse.SessionId}";
     }
 
-    public async Task ProcessIncomingMessageAsync(string instanceName, string senderPhone, string messageText)
+    public async Task ProcessIncomingMessageAsync(string instanceName, string senderPhone, string messageText, string? senderName = null)
     {
         var settings = await _settingsRepository.GetSettingsAsync();
 
@@ -50,7 +57,7 @@ public class WhatsappBotService : IWhatsappBotService
         // Máquina de estados simples do Menu Interativo
         if (cleanText == "1" || cleanText == "um" || cleanText == "cardapio" || cleanText == "cardápio" || cleanText == "pedido" || cleanText == "fazer pedido")
         {
-            var orderLink = await GenerateOrderLinkAsync(cleanPhone);
+            var orderLink = await GenerateOrderLinkAsync(cleanPhone, senderName);
             var responseText = $"Que ótimo! 🍕 Clique no link abaixo para acessar nosso Cardápio Digital com seu token de segurança exclusivo e fazer seu pedido rapidamente:\n\n👉 {orderLink}\n\n*Nota: Este link é autenticado e exclusivo para o seu WhatsApp!*";
             await _whatsappSender.SendTextMessageAsync(cleanPhone, responseText);
         }

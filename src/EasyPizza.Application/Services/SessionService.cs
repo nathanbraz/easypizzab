@@ -36,13 +36,14 @@ public class SessionService : ISessionService
         
         if (customer == null)
         {
-            customer = new Customer(request.PhoneNumber, request.Name);
+            var customerName = !string.IsNullOrWhiteSpace(request.Name) ? request.Name.Trim() : $"Cliente ({request.PhoneNumber})";
+            customer = new Customer(request.PhoneNumber, customerName);
             await _customerRepository.AddAsync(customer);
             await _customerRepository.SaveChangesAsync();
         }
-        else if (!string.IsNullOrEmpty(request.Name) && customer.Name != request.Name)
+        else if (!string.IsNullOrWhiteSpace(request.Name) && customer.Name != request.Name.Trim())
         {
-            customer.UpdateName(request.Name);
+            customer.UpdateName(request.Name.Trim());
             await _customerRepository.UpdateAsync(customer);
             await _customerRepository.SaveChangesAsync();
         }
@@ -54,7 +55,7 @@ public class SessionService : ISessionService
 
         // O link mágico gerado com o Slug do Tenant
         // BaseUrl será configurado no frontend. O backend só devolve o Path
-        var magicLink = $"/{tenant.Slug}/pedido?t={session.Id}";
+        var magicLink = $"/{tenant.Slug}?t={session.Id}";
 
         return new GenerateSessionResponse
         {

@@ -1,7 +1,7 @@
 using EasyPizza.Api.Services;
+using EasyPizza.Application.Interfaces;
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Application.Interfaces.Services;
-using EasyPizza.Application.Interfaces;
 using EasyPizza.Application.Services;
 using EasyPizza.Infrastructure.Data;
 using EasyPizza.Infrastructure.Repositories;
@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers()
-    .AddJsonOptions(options => 
+    .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
@@ -41,14 +41,12 @@ builder.Services.AddDbContext<EasyPizzaDbContext>((serviceProvider, options) =>
 {
     var tenantProvider = serviceProvider.GetRequiredService<ITenantProvider>();
     var connectionString = tenantProvider.GetConnectionString();
-    
-    // If no connection string is found (e.g. invalid tenant or running migrations), use a fallback or throw
+
     if (string.IsNullOrEmpty(connectionString))
     {
-        // We can fallback to a dummy connection string just to allow EF tooling to work
-        connectionString = builder.Configuration.GetConnectionString("DummyTenantConnection") ?? "Host=localhost;Database=dummy;Username=postgres;Password=postgres";
+        throw new InvalidOperationException("Erro de SaaS: Tenant (Pizzaria) não identificado ou não cadastrado no Banco Mestre.");
     }
-    
+
     options.UseNpgsql(connectionString);
 });
 

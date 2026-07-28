@@ -30,6 +30,7 @@ public class WhatsappWebhookController : ControllerBase
         // Tenta extrair telefone e texto tanto do formato simplificado (Swagger) quanto do formato Evolution API
         string? phone = payload.Phone ?? payload.Data?.Key?.RemoteJid?.Split('@')[0];
         string? text = payload.Text ?? payload.Data?.Message?.Conversation ?? payload.Data?.Message?.ExtendedTextMessage?.Text;
+        string? senderName = payload.Name ?? payload.PushName ?? payload.SenderName ?? payload.Data?.PushName ?? payload.Data?.NotifyName ?? payload.Sender;
 
         if (string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(text))
         {
@@ -43,9 +44,9 @@ public class WhatsappWebhookController : ControllerBase
             return Ok();
         }
 
-        _logger.LogInformation("[WEBHOOK RECEBIDO] Instância: {Instance} | De: {Phone} | Texto: {Text}", instanceName, phone, text);
+        _logger.LogInformation("[WEBHOOK RECEBIDO] Instância: {Instance} | De: {Phone} | Nome: {Name} | Texto: {Text}", instanceName, phone, senderName ?? "N/A", text);
 
-        await _whatsappBotService.ProcessIncomingMessageAsync(instanceName, phone, text);
+        await _whatsappBotService.ProcessIncomingMessageAsync(instanceName, phone, text, senderName);
 
         return Ok(new { success = true, message = "Mensagem processada pelo robô com sucesso" });
     }
@@ -57,6 +58,10 @@ public class EvolutionWebhookPayload
     // Campos simplificados para teste no Swagger/Postman
     public string? Phone { get; set; }
     public string? Text { get; set; }
+    public string? Name { get; set; }
+    public string? PushName { get; set; }
+    public string? SenderName { get; set; }
+    public string? Sender { get; set; }
 
     // Campos reais do payload Evolution API / Z-API
     public EvolutionData? Data { get; set; }
@@ -66,6 +71,8 @@ public class EvolutionData
 {
     public EvolutionKey? Key { get; set; }
     public EvolutionMessage? Message { get; set; }
+    public string? PushName { get; set; }
+    public string? NotifyName { get; set; }
 }
 
 public class EvolutionKey

@@ -43,6 +43,12 @@ public class EvolutionApiWhatsappSender : IWhatsappSender
             var serverUrl = settings.WhatsappServerUrl.TrimEnd('/');
             var instanceName = !string.IsNullOrWhiteSpace(settings.WhatsappInstanceName) ? settings.WhatsappInstanceName : "pizzariabrazil";
 
+            // Se o usuário colou a URL já com a instância no final (ex: https://api.ultramsg.com/instance186299), removemos para não duplicar
+            if (serverUrl.EndsWith($"/{instanceName}", StringComparison.OrdinalIgnoreCase))
+            {
+                serverUrl = serverUrl.Substring(0, serverUrl.Length - instanceName.Length - 1);
+            }
+
             string url;
             object payload;
             var request = new HttpRequestMessage(HttpMethod.Post, "");
