@@ -20,29 +20,29 @@ public class EasyPizzaDbContext : DbContext
 
 
 
-    // Catalog
+    // Catálogo
     public DbSet<ProductCategory> ProductCategories { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<CategoryAddon> CategoryAddons { get; set; }
     
-    // Customers
+    // Clientes
     public DbSet<Customer> Customers { get; set; }
     public DbSet<CustomerAddress> CustomerAddresses { get; set; }
     
-    // Coupons
+    // Cupons
     public DbSet<Coupon> Coupons { get; set; }
     
-    // Couriers
+    // Entregadores
     public DbSet<Courier> Couriers { get; set; }
     
-    // Orders
+    // Pedidos
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<OrderItemAddon> OrderItemAddons { get; set; }
     public DbSet<OrderSession> OrderSessions { get; set; }
     public DbSet<PaymentType> PaymentTypes { get; set; }
     
-    // Settings
+    // Configurações
     public DbSet<StoreSettings> StoreSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -154,7 +154,7 @@ public class EasyPizzaDbContext : DbContext
             entity.Property(e => e.FreeDeliveryThreshold).HasColumnType("decimal(18,2)");
         });
 
-        // --- Data Seeding ---
+        // --- Inserção de Dados Inicial (Seed) ---
         var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         
         var pixId = Guid.Parse("c839f99e-3151-4045-8c01-7ec829e04812");

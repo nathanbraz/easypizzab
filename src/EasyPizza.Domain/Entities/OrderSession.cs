@@ -8,10 +8,10 @@ public class OrderSession : Entity
     public DateTime ExpiresAt { get; private set; }
     public bool IsUsed { get; private set; }
 
-    // EF Core navigation properties
+    // Propriedades de navegação do EF Core
     public Customer? Customer { get; private set; }
 
-    // Parameterless constructor for EF Core
+    // Construtor sem parâmetros para o EF Core
     protected OrderSession() { }
 
     public OrderSession(Guid customerId, int expirationHours = 2)

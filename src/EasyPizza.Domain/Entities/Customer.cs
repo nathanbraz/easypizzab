@@ -7,11 +7,11 @@ public class Customer : Entity
     public string PhoneNumber { get; private set; }
     public string? Name { get; private set; }
     
-    // 1-N Navigation property
+    // Propriedade de navegação 1-N
     public ICollection<CustomerAddress> Addresses { get; private set; } = new List<CustomerAddress>();
     public ICollection<OrderSession> Sessions { get; private set; } = new List<OrderSession>();
 
-    // Parameterless constructor for EF Core
+    // Construtor sem parâmetros para o EF Core
     protected Customer() { }
 
     public Customer(string phoneNumber, string? name = null)

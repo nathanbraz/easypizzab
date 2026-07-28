@@ -4,11 +4,11 @@ namespace EasyPizza.Domain.Entities;
 
 public class PaymentType : Entity
 {
-    public string Name { get; private set; } // e.g., "Pix", "Cartão de Crédito - Maquininha", "Dinheiro"
-    public bool IsOnlinePayment { get; private set; } // if true, it's Pix online. If false, it's payment at the door.
+    public string Name { get; private set; } // ex., "Pix", "Cartão de Crédito - Maquininha", "Dinheiro"
+    public bool IsOnlinePayment { get; private set; } // se verdadeiro, é Pix online. Se falso, é pagamento na porta.
     public bool IsActive { get; private set; }
     
-    // Display order on checkout
+    // Ordem de exibição no checkout
     public int DisplayOrder { get; private set; }
 
     protected PaymentType() { }

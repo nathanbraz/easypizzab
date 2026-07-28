@@ -15,7 +15,7 @@ public class CustomerAddress : Entity
     public double? Latitude { get; private set; }
     public double? Longitude { get; private set; }
     
-    // Usually customers have a main address
+    // Geralmente clientes têm um endereço principal
     public bool IsDefault { get; private set; }
 
     public Customer? Customer { get; private set; }

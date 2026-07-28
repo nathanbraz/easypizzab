@@ -15,7 +15,7 @@ public class StoreSettings : Entity
     public string? MessageOfTheDay { get; private set; }
     public string? ActiveGlobalCouponCode { get; private set; }
 
-    // WhatsApp Bot & Webhook Settings
+    // Configurações do Bot e Webhook do WhatsApp
     public bool WhatsappBotEnabled { get; private set; }
     public string? WhatsappServerUrl { get; private set; }
     public string? WhatsappInstanceName { get; private set; }

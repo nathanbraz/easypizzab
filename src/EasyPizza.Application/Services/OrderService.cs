@@ -16,7 +16,7 @@ public class OrderService(
     {
         var subTotal = items.Sum(i => i.quantity * i.unitPrice);
         
-        // --- 1. Settings Validation ---
+        // --- 1. Validação de Configurações ---
         var settings = await settingsRepository.GetSettingsAsync();
         
         if (!settings.IsStoreOpen)
@@ -35,7 +35,7 @@ public class OrderService(
         if (paymentType == null || !paymentType.IsActive)
             throw new InvalidOperationException("Forma de pagamento inválida ou indisponível.");
 
-        // --- 2. Calculate Delivery Fee ---
+        // --- 2. Calcular Taxa de Entrega ---
         decimal deliveryFee = 0;
         if (type == OrderType.Delivery)
         {
@@ -45,7 +45,7 @@ public class OrderService(
                 deliveryFee = settings.DeliveryFee;
         }
 
-        // --- 3. Validate and Apply Coupon ---
+        // --- 3. Validar e Aplicar Cupom ---
         decimal discountAmount = 0;
         Guid? couponId = null;
         if (!string.IsNullOrWhiteSpace(couponCode))

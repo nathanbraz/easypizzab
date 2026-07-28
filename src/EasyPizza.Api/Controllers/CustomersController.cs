@@ -14,7 +14,7 @@ public class CustomersController : ControllerBase
         _customerService = customerService;
     }
 
-    // Called automatically by Webhook/Bot when someone sends a message
+    // Chamado automaticamente pelo Webhook/Bot quando alguém envia uma mensagem
     [HttpPost("{tenantSlug}/register")]
     public async Task<IActionResult> RegisterFromWhatsApp(string tenantSlug, [FromBody] RegisterCustomerRequest request)
     {
@@ -22,7 +22,7 @@ public class CustomersController : ControllerBase
         return Ok(customer);
     }
 
-    // Called by Frontend when user is at checkout
+    // Chamado pelo Frontend quando o usuário está no checkout
     [HttpPut("{tenantSlug}/{id:guid}/address")]
     public async Task<IActionResult> UpdateAddress(string tenantSlug, Guid id, [FromBody] UpdateAddressRequest request)
     {

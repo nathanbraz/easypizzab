@@ -21,13 +21,13 @@ public class Order : IntEntity
 {
     public Guid CustomerId { get; private set; }
     
-    // Address where the order will be delivered (null if it's pickup)
+    // Endereço onde o pedido será entregue (nulo se for retirada)
     public Guid? CustomerAddressId { get; private set; }
     
-    // Delivery or Pickup
+    // Entrega ou Retirada
     public OrderType Type { get; private set; }
     
-    // Payment method chosen
+    // Método de pagamento escolhido
     public Guid PaymentTypeId { get; private set; }
 
     public OrderStatus Status { get; private set; }
@@ -36,14 +36,14 @@ public class Order : IntEntity
     public decimal DiscountAmount { get; private set; }
     public decimal TotalAmount { get; private set; }
 
-    // Coupon applied
+    // Cupom aplicado
     public Guid? CouponId { get; private set; }
     public string? CouponCode { get; private set; }
     
-    // Pix generated code payload
+    // Payload do código Pix gerado
     public string? PixCopyPasteCode { get; private set; }
     
-    // For external gateway if integrated in the future
+    // Para gateway externo se integrado no futuro
     public string? PaymentExternalId { get; private set; }
     public bool IsPaid { get; private set; }
 
@@ -85,7 +85,7 @@ public class Order : IntEntity
         IsPaid = true;
         if (externalId != null) PaymentExternalId = externalId;
         
-        Status = OrderStatus.Preparing; // Automatically move to kitchen
+        Status = OrderStatus.Preparing; // Mover automaticamente para a cozinha
         SetUpdatedAt();
     }
 

@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Adiciona serviços ao contêiner.
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -29,28 +29,26 @@ builder.Services.AddCors(options =>
     });
 });
 
-// DI for Master DB
+// Injeção de Dependência para o Banco de Dados Master
 builder.Services.AddDbContext<MasterDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MasterConnection")));
 
-// DI for Tenant Resolution
+// Injeção de Dependência para Resolução do Tenant
 builder.Services.AddScoped<ITenantProvider, HttpTenantProvider>();
 
-// DI for Tenant DB (Dynamic Connection String)
+// Injeção de Dependência para o Banco de Dados do Tenant (String de Conexão Dinâmica)
 builder.Services.AddDbContext<EasyPizzaDbContext>((serviceProvider, options) =>
 {
     var tenantProvider = serviceProvider.GetRequiredService<ITenantProvider>();
     var connectionString = tenantProvider.GetConnectionString();
 
-    if (string.IsNullOrEmpty(connectionString))
+    if (!string.IsNullOrEmpty(connectionString))
     {
-        throw new InvalidOperationException("Erro de SaaS: Tenant (Pizzaria) não identificado ou não cadastrado no Banco Mestre.");
+        options.UseNpgsql(connectionString);
     }
-
-    options.UseNpgsql(connectionString);
 });
 
-// DI for Repositories and Services
+// Injeção de Dependência para Repositórios e Serviços
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -68,7 +66,7 @@ builder.Services.AddScoped<IWhatsappBotService, WhatsappBotService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configura o pipeline de requisição HTTP.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -83,6 +81,35 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 app.UseAuthorization();
+
+// Middleware de bloqueio de Tenant
+app.Use(async (context, next) =>
+{
+    // Ignora rotas nativas que não precisam de banco de dados do lojista
+    if (context.Request.Path.StartsWithSegments("/openapi") || 
+        context.Request.Path.StartsWithSegments("/swagger") ||
+        context.Request.Path.StartsWithSegments("/api/superadmin") ||
+        context.Request.Path.StartsWithSegments("/api/uploads"))
+    {
+        await next(context);
+        return;
+    }
+
+    var tenantProvider = context.RequestServices.GetRequiredService<ITenantProvider>();
+    var conn = tenantProvider.GetConnectionString();
+    
+    if (string.IsNullOrEmpty(conn))
+    {
+        context.Response.StatusCode = 400; // Bad Request
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync("{\"success\": false, \"message\": \"Erro de SaaS: Tenant (Pizzaria) não identificado ou não cadastrado no Banco Mestre.\"}");
+        return; // Interrompe a requisição aqui (Short-circuit)
+    }
+
+    await next(context);
+});
+
 app.MapControllers();
+
 
 app.Run();

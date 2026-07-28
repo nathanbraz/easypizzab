@@ -14,7 +14,7 @@ public class MenuController : ControllerBase
         _catalogService = catalogService;
     }
 
-    // Called by the Frontend app (Client View) to load everything at once
+    // Chamado pelo aplicativo Frontend (Visão do Cliente) para carregar tudo de uma vez
     [HttpGet("{tenantSlug}")]
     public async Task<IActionResult> GetMenu(string tenantSlug)
     {

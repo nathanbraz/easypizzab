@@ -15,7 +15,7 @@ public class OrdersController : ControllerBase
         _orderService = orderService;
     }
 
-    // Customer Endpoint: Place an order
+    // Endpoint do Cliente: Fazer um pedido
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> CreateOrder(string tenantSlug, [FromBody] CreateOrderRequest request)
     {
@@ -37,7 +37,7 @@ public class OrdersController : ControllerBase
         }
     }
 
-    // Customer Endpoint: Get order by id
+    // Endpoint do Cliente: Obter pedido por id
     [HttpGet("{tenantSlug}/{orderId:int}")]
     public async Task<IActionResult> GetOrderById(string tenantSlug, int orderId)
     {
@@ -46,7 +46,7 @@ public class OrdersController : ControllerBase
         return Ok(new { success = true, data = order });
     }
 
-    // Customer Endpoint: Get orders by customer
+    // Endpoint do Cliente: Obter pedidos por cliente
     [HttpGet("{tenantSlug}/customer/{customerId:guid}")]
     public async Task<IActionResult> GetOrdersByCustomer(string tenantSlug, Guid customerId)
     {
@@ -54,7 +54,7 @@ public class OrdersController : ControllerBase
         return Ok(new { success = true, data = orders });
     }
 
-    // Admin Endpoint: KDS
+    // Endpoint do Admin: KDS (Sistema de Tela de Cozinha)
     [HttpGet("admin/{tenantSlug}")]
     public async Task<IActionResult> GetOrders(string tenantSlug)
     {
@@ -62,7 +62,7 @@ public class OrdersController : ControllerBase
         return Ok(orders);
     }
 
-    // Admin Endpoint: Update KDS Status
+    // Endpoint do Admin: Atualizar Status do KDS
     [HttpPatch("admin/{tenantSlug}/{orderId:int}/status")]
     public async Task<IActionResult> UpdateStatus(string tenantSlug, int orderId, [FromBody] UpdateStatusRequest request)
     {

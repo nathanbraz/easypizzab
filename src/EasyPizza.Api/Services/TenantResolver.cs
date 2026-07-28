@@ -26,7 +26,7 @@ public class HttpTenantProvider : ITenantProvider
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext == null) return null;
 
-        // Extract hostname slug (e.g. "pizzatop" from "pizzatop.easypizza.com.br" or "pizzatop.lvh.me")
+        // Extrai o slug do hostname (ex: "pizzatop" de "pizzatop.easypizza.com.br" ou "pizzatop.lvh.me")
         string? hostSlug = null;
         var host = httpContext.Request.Host.Host;
         if (!string.IsNullOrEmpty(host) && host.Contains('.'))
@@ -38,7 +38,7 @@ public class HttpTenantProvider : ITenantProvider
             }
         }
 
-        // Try to get the tenant slug from header (highest priority), then host, then route or query
+        // Tenta obter o slug do tenant a partir do header (maior prioridade), depois do host, e por fim da rota ou query
         var headerSlug = httpContext.Request.Headers["X-Tenant-Slug"].ToString();
         var routeSlug = httpContext.Request.RouteValues["tenantSlug"]?.ToString();
         var instanceSlug = httpContext.Request.RouteValues["instanceName"]?.ToString();
@@ -53,7 +53,7 @@ public class HttpTenantProvider : ITenantProvider
         if (string.IsNullOrEmpty(tenantSlug))
             return null;
 
-        // Resolve MasterDbContext using a new scope so we don't trap it in a singleton or circular dependency
+        // Resolve o MasterDbContext usando um novo escopo para não prendê-lo em um singleton ou dependência circular
         using var scope = _serviceProvider.CreateScope();
         var masterDbContext = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
         
@@ -71,7 +71,7 @@ public class HttpTenantProvider : ITenantProvider
     public EasyPizza.Domain.Entities.Tenant? GetTenant()
     {
         if (_tenant != null) return _tenant;
-        GetConnectionString(); // This will resolve the tenant and connection string
+        GetConnectionString(); // Isso irá resolver o tenant e a string de conexão
         return _tenant;
     }
 }
