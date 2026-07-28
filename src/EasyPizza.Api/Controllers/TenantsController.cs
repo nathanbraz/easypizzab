@@ -1,5 +1,6 @@
 using EasyPizza.Domain.Entities;
 using EasyPizza.Infrastructure.Data;
+using EasyPizza.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,24 +20,27 @@ public class TenantsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var tenants = await _masterDb.Tenants.ToListAsync();
+        var tenants = await _masterDb.Tenants.OrderByDescending(t => t.CreatedAt).ToListAsync();
         return Ok(tenants);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTenantRequest request)
     {
-        // Generates slug from name if not provided
-        var slug = string.IsNullOrWhiteSpace(request.Slug) 
-            ? request.Name.ToLower().Replace(" ", "").Replace("-", "") 
-            : request.Slug.ToLower();
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest("O nome do tenant é obrigatório.");
 
-        var exists = await _masterDb.Tenants.AnyAsync(t => t.Slug == slug);
-        if (exists) return BadRequest("O slug deste tenant já existe.");
+        var slug = !string.IsNullOrWhiteSpace(request.Slug) 
+            ? request.Slug.ToLower().Trim() 
+            : request.Name.ToLower().Replace(" ", "").Replace("-", "").Trim();
 
-        var connectionString = string.IsNullOrWhiteSpace(request.ConnectionString)
-            ? $"Host=localhost;Database=easypizza_{slug};Username=postgres;Password=1234"
-            : request.ConnectionString;
+        var existing = await _masterDb.Tenants.FirstOrDefaultAsync(t => t.Slug == slug);
+        if (existing != null)
+            return BadRequest($"Já existe uma pizzaria cadastrada com o subdomínio/identificador '{slug}'.");
+
+        var connectionString = !string.IsNullOrWhiteSpace(request.ConnectionString)
+            ? request.ConnectionString
+            : $"Host=localhost;Port=5432;Database=easypizza_{slug};Username=postgres;Password=1234";
 
         var tenant = new Tenant(request.Name, slug, connectionString);
         _masterDb.Tenants.Add(tenant);
@@ -48,6 +52,9 @@ public class TenantsController : ControllerBase
             optionsBuilder.UseNpgsql(connectionString);
             using var tenantDbContext = new EasyPizzaDbContext(optionsBuilder.Options);
             await tenantDbContext.Database.MigrateAsync();
+
+            var settingsRepo = new StoreSettingsRepository(tenantDbContext);
+            await settingsRepo.GetSettingsAsync();
         }
         catch (Exception ex)
         {
@@ -72,6 +79,10 @@ public class TenantsController : ControllerBase
             optionsBuilder.UseNpgsql(tenant.ConnectionString);
             using var tenantDbContext = new EasyPizzaDbContext(optionsBuilder.Options);
             await tenantDbContext.Database.MigrateAsync();
+
+            var settingsRepo = new StoreSettingsRepository(tenantDbContext);
+            await settingsRepo.GetSettingsAsync();
+
             return Ok(new { success = true, message = $"Banco de dados de {tenant.Name} ({tenant.Slug}) migrado com sucesso." });
         }
         catch (Exception ex)

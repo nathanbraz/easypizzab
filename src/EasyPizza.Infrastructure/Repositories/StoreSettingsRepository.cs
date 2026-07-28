@@ -20,24 +20,24 @@ public class StoreSettingsRepository : IStoreSettingsRepository
         
         if (settings == null)
         {
-            // Se não existe, cria com valores padrão
+            // Pré-configurações essenciais para uma nova loja iniciar operando lisinha (exceto WhatsApp que é manual)
             settings = new StoreSettings(
                 isStoreOpen: true,
-                deliveryFee: 0m,
-                minimumOrderAmount: 0m,
+                deliveryFee: 5.00m,
+                minimumOrderAmount: 30.00m,
                 estimatedDeliveryTimeMin: 30,
-                estimatedDeliveryTimeMax: 50,
+                estimatedDeliveryTimeMax: 45,
                 freeDeliveryThreshold: null,
                 acceptingPickup: true,
                 acceptingDelivery: true,
-                messageOfTheDay: null,
+                messageOfTheDay: "🍕 Bem-vindo à nossa Pizzaria! Peças artesanais feitas com muito carinho e ingredientes selecionados.",
                 activeGlobalCouponCode: null,
                 whatsappBotEnabled: false,
-                whatsappServerUrl: "http://localhost:8080",
-                whatsappInstanceName: "pizzariabrazil",
-                whatsappApiKey: null,
-                whatsappSupportPhone: "5511999999999",
-                whatsappGreetingMessage: "Olá! Bem-vindo ao atendimento automático da Pizzaria Brazil! 🍕\n\nDigite 1 para acessar nosso Cardápio Digital\nDigite 2 para Falar com Atendente"
+                whatsappServerUrl: "",
+                whatsappInstanceName: "",
+                whatsappApiKey: "",
+                whatsappSupportPhone: "",
+                whatsappGreetingMessage: "Olá! Bem-vindo ao nosso atendimento automático! 🍕\n\nDigite 1 para acessar nosso Cardápio Digital\nDigite 2 para Falar com Atendente"
             );
             
             _context.StoreSettings.Add(settings);
