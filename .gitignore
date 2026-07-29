@@ -502,3 +502,4 @@ secrets.json
 # Additional Temporary / Working Directories
 tmp/
 temp/
+src/EasyPizza.Api/wwwroot/uploads/ 
