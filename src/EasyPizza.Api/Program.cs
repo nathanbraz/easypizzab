@@ -86,7 +86,8 @@ app.UseAuthorization();
 app.Use(async (context, next) =>
 {
     // Ignora rotas nativas que não precisam de banco de dados do lojista
-    if (context.Request.Path.StartsWithSegments("/openapi") || 
+    if (context.Request.Method == "OPTIONS" ||
+        context.Request.Path.StartsWithSegments("/openapi") || 
         context.Request.Path.StartsWithSegments("/swagger") ||
         context.Request.Path.StartsWithSegments("/api/superadmin") ||
         context.Request.Path.StartsWithSegments("/api/uploads"))
@@ -96,14 +97,22 @@ app.Use(async (context, next) =>
     }
 
     var tenantProvider = context.RequestServices.GetRequiredService<ITenantProvider>();
-    var conn = tenantProvider.GetConnectionString();
+    var tenant = tenantProvider.GetTenant();
     
-    if (string.IsNullOrEmpty(conn))
+    if (tenant == null || string.IsNullOrEmpty(tenant.ConnectionString))
     {
         context.Response.StatusCode = 400; // Bad Request
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync("{\"success\": false, \"message\": \"Erro de SaaS: Tenant (Pizzaria) não identificado ou não cadastrado no Banco Mestre.\"}");
-        return; // Interrompe a requisição aqui (Short-circuit)
+        await context.Response.WriteAsync("{\"success\": false, \"message\": \"Erro de SaaS: Empresa não identificada ou não cadastrada no Banco Mestre.\"}");
+        return; 
+    }
+
+    if (!tenant.IsActive)
+    {
+        context.Response.StatusCode = 403; // Forbidden
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync("{\"success\": false, \"message\": \"TenantSuspended\"}");
+        return; 
     }
 
     await next(context);

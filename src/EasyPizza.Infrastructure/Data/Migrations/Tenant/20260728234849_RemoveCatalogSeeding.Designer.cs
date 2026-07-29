@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 {
     [DbContext(typeof(EasyPizzaDbContext))]
-    partial class EasyPizzaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260728234849_RemoveCatalogSeeding")]
+    partial class RemoveCatalogSeeding
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,9 +35,8 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Property<decimal>("AdditionalPrice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.PrimitiveCollection<List<Guid>>("CategoryIds")
-                        .IsRequired()
-                        .HasColumnType("uuid[]");
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -47,6 +49,8 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
 
                     b.ToTable("CategoryAddons");
                 });
@@ -561,6 +565,17 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.ToTable("StoreSettings");
                 });
 
+            modelBuilder.Entity("EasyPizza.Domain.Entities.CategoryAddon", b =>
+                {
+                    b.HasOne("EasyPizza.Domain.Entities.ProductCategory", "Category")
+                        .WithMany("Addons")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("EasyPizza.Domain.Entities.CustomerAddress", b =>
                 {
                     b.HasOne("EasyPizza.Domain.Entities.Customer", "Customer")
@@ -684,6 +699,8 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 
             modelBuilder.Entity("EasyPizza.Domain.Entities.ProductCategory", b =>
                 {
+                    b.Navigation("Addons");
+
                     b.Navigation("Products");
                 });
 #pragma warning restore 612, 618

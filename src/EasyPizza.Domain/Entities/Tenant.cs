@@ -33,4 +33,10 @@ public class Tenant : Entity
         IsActive = false;
         SetUpdatedAt();
     }
+
+    public void Activate()
+    {
+        IsActive = true;
+        SetUpdatedAt();
+    }
 }

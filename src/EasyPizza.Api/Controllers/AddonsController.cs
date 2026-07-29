@@ -25,7 +25,7 @@ public class AddonsController : ControllerBase
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> Create(string tenantSlug, [FromBody] CreateAddonRequest request)
     {
-        var addon = new CategoryAddon(request.CategoryId, request.Name, request.AdditionalPrice);
+        var addon = new CategoryAddon(request.CategoryIds, request.Name, request.AdditionalPrice);
         await _repository.AddAsync(addon);
         await _repository.SaveChangesAsync();
         return Ok(addon);
@@ -37,7 +37,7 @@ public class AddonsController : ControllerBase
         var addon = await _repository.GetByIdAsync(id);
         if (addon == null) return NotFound();
 
-        addon.UpdateDetails(request.Name, request.AdditionalPrice);
+        addon.UpdateDetails(request.CategoryIds, request.Name, request.AdditionalPrice);
         await _repository.UpdateAsync(addon);
         await _repository.SaveChangesAsync();
 
@@ -57,5 +57,5 @@ public class AddonsController : ControllerBase
     }
 }
 
-public record CreateAddonRequest(Guid CategoryId, string Name, decimal AdditionalPrice);
-public record UpdateAddonRequest(string Name, decimal AdditionalPrice);
+public record CreateAddonRequest(List<Guid> CategoryIds, string Name, decimal AdditionalPrice);
+public record UpdateAddonRequest(List<Guid> CategoryIds, string Name, decimal AdditionalPrice);

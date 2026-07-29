@@ -107,7 +107,6 @@ public class EasyPizzaDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasMany(e => e.Products).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
-            entity.HasMany(e => e.Addons).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -167,19 +166,7 @@ public class EasyPizzaDbContext : DbContext
             new { Id = cardId, Name = "Cartão (Maquininha)", IsOnlinePayment = false, IsActive = true, DisplayOrder = 3, CreatedAt = seedDate }
         );
 
-        var pizzaCatId = Guid.Parse("d866a152-4467-4d7a-8f4b-bfb6df7d6b38");
-        var drinkCatId = Guid.Parse("41b711ea-eb8d-4ab0-b5cc-44b2f676451e");
 
-        modelBuilder.Entity<ProductCategory>().HasData(
-            new { Id = pizzaCatId, Name = "Pizzas Tradicionais", DisplayOrder = 1, CreatedAt = seedDate },
-            new { Id = drinkCatId, Name = "Bebidas", DisplayOrder = 2, CreatedAt = seedDate }
-        );
-
-        modelBuilder.Entity<Product>().HasData(
-            new { Id = Guid.Parse("8ebde348-18e3-4c07-b358-fc24d1eb4df4"), CategoryId = pizzaCatId, Name = "Calabresa", Description = "Muçarela, calabresa e cebola", Price = 49.90m, ImageUrls = new List<string>(), IsAvailable = true, CreatedAt = seedDate },
-            new { Id = Guid.Parse("a0f7c1d3-3b12-4c28-98e3-f61b0c034298"), CategoryId = pizzaCatId, Name = "Marguerita", Description = "Muçarela, tomate e manjericão fresco", Price = 45.00m, ImageUrls = new List<string>(), IsAvailable = true, CreatedAt = seedDate },
-            new { Id = Guid.Parse("18f3a382-3d84-46b2-a4f6-8c4d28d0b8c4"), CategoryId = drinkCatId, Name = "Coca-Cola 2L", Description = "Refrigerante 2 Litros", Price = 14.00m, ImageUrls = new List<string>(), IsAvailable = true, CreatedAt = seedDate }
-        );
 
     }
 }
