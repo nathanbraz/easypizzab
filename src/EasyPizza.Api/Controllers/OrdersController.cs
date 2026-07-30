@@ -21,7 +21,14 @@ public class OrdersController : ControllerBase
     {
         try 
         {
-            var items = request.Items.Select(i => (i.ProductId, i.Quantity, i.UnitPrice)).ToList();
+            var items = request.Items.Select(i => new OrderItemInput(
+                i.ProductId,
+                i.Quantity,
+                i.UnitPrice,
+                i.Notes,
+                i.Addons?.Select(a => new OrderItemAddonInput(a.ProductOptionItemId, a.AddonName, a.Price, a.Quantity)).ToList()
+            )).ToList();
+
             var order = await _orderService.CreateOrderAsync(request.CustomerId, request.CustomerAddressId, request.Type, request.PaymentTypeId, items, request.CouponCode);
             
             return Ok(new
@@ -72,5 +79,6 @@ public class OrdersController : ControllerBase
 }
 
 public record CreateOrderRequest(Guid CustomerId, Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items, string? CouponCode = null);
-public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice);
+public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice, string? Notes = null, List<OrderItemAddonRequest>? Addons = null);
+public record OrderItemAddonRequest(Guid? ProductOptionItemId, string AddonName, decimal Price, int Quantity = 1);
 public record UpdateStatusRequest(OrderStatus Status);

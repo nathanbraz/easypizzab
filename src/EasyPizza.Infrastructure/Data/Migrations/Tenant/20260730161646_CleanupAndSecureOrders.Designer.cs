@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 {
     [DbContext(typeof(EasyPizzaDbContext))]
-    partial class EasyPizzaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260730161646_CleanupAndSecureOrders")]
+    partial class CleanupAndSecureOrders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -296,6 +299,9 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Property<string>("AddonName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("CategoryAddonId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");

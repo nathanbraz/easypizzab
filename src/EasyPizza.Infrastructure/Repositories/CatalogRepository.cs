@@ -18,15 +18,11 @@ public class CatalogRepository : ICatalogRepository
     {
         var categories = await _context.ProductCategories
             .Include(c => c.Products)
+                .ThenInclude(p => p.OptionGroups)
+                    .ThenInclude(og => og.Options)
             .OrderBy(c => c.DisplayOrder)
             .ToListAsync();
 
-        var addons = await _context.CategoryAddons.ToListAsync();
-
-        foreach (var category in categories)
-        {
-            category.Addons = addons.Where(a => a.CategoryIds != null && a.CategoryIds.Contains(category.Id)).ToList();
-        }
 
         return categories;
     }
@@ -34,6 +30,8 @@ public class CatalogRepository : ICatalogRepository
     public async Task<Product?> GetProductByIdAsync(Guid productId)
     {
         return await _context.Products
+            .Include(p => p.OptionGroups)
+                .ThenInclude(og => og.Options)
             .FirstOrDefaultAsync(p => p.Id == productId);
     }
 }

@@ -10,11 +10,12 @@ public class OrderService(
     IPaymentTypeRepository paymentTypeRepository,
     ICouponRepository couponRepository,
     ICustomerRepository customerRepository,
-    IWhatsappSender whatsappSender) : IOrderService
+    IWhatsappSender whatsappSender,
+    ICatalogRepository catalogRepository) : IOrderService
 {
-    public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<(Guid productId, int quantity, decimal unitPrice)> items, string? couponCode = null)
+    public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<OrderItemInput> items, string? couponCode = null)
     {
-        var subTotal = items.Sum(i => i.quantity * i.unitPrice);
+        var subTotal = items.Sum(i => i.Quantity * i.UnitPrice);
         
         // --- 1. Validação de Configurações ---
         var settings = await settingsRepository.GetSettingsAsync();
@@ -71,7 +72,27 @@ public class OrderService(
 
         foreach (var item in items)
         {
-            order.Items.Add(new OrderItem(order.Id, item.productId, item.quantity, item.unitPrice));
+            var product = await catalogRepository.GetProductByIdAsync(item.ProductId);
+            string productName = product?.Name ?? "Produto Desconhecido";
+
+            var orderItem = new OrderItem(order.Id, item.ProductId, productName, item.Quantity, item.UnitPrice, item.Notes);
+
+            // Salva as opções selecionadas pelo cliente (tamanho, borda, adicionais etc.)
+            if (item.Addons != null)
+            {
+                foreach (var addon in item.Addons)
+                {
+                    orderItem.Addons.Add(new OrderItemAddon(
+                        orderItem.Id,
+                        addon.ProductOptionItemId,
+                        addon.AddonName,
+                        addon.Price,
+                        addon.Quantity
+                    ));
+                }
+            }
+
+            order.Items.Add(orderItem);
         }
 
         await repository.AddAsync(order);

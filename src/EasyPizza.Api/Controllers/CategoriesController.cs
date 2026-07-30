@@ -25,7 +25,7 @@ public class CategoriesController : ControllerBase
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> Create(string tenantSlug, [FromBody] CreateCategoryRequest request)
     {
-        var category = new ProductCategory(request.Name, request.DisplayOrder);
+        var category = new ProductCategory(request.Name, request.DisplayOrder, request.AllowsHalfAndHalf);
         await _repository.AddAsync(category);
         await _repository.SaveChangesAsync();
         return Ok(category);
@@ -37,7 +37,7 @@ public class CategoriesController : ControllerBase
         var category = await _repository.GetByIdAsync(id);
         if (category == null) return NotFound();
 
-        category.UpdateDetails(request.Name, request.DisplayOrder);
+        category.UpdateDetails(request.Name, request.DisplayOrder, request.AllowsHalfAndHalf);
         await _repository.UpdateAsync(category);
         await _repository.SaveChangesAsync();
 
@@ -57,5 +57,5 @@ public class CategoriesController : ControllerBase
     }
 }
 
-public record CreateCategoryRequest(string Name, int DisplayOrder);
-public record UpdateCategoryRequest(string Name, int DisplayOrder);
+public record CreateCategoryRequest(string Name, int DisplayOrder, bool AllowsHalfAndHalf = false);
+public record UpdateCategoryRequest(string Name, int DisplayOrder, bool AllowsHalfAndHalf = false);

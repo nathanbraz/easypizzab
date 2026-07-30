@@ -23,7 +23,9 @@ public class EasyPizzaDbContext : DbContext
     // Catálogo
     public DbSet<ProductCategory> ProductCategories { get; set; }
     public DbSet<Product> Products { get; set; }
-    public DbSet<CategoryAddon> CategoryAddons { get; set; }
+    public DbSet<ProductOptionGroup> ProductOptionGroups { get; set; }
+    public DbSet<ProductOptionItem> ProductOptionItems { get; set; }
+    
     
     // Clientes
     public DbSet<Customer> Customers { get; set; }
@@ -113,13 +115,22 @@ public class EasyPizzaDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.HasMany(e => e.OptionGroups).WithOne(e => e.Product).HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<CategoryAddon>(entity =>
+        modelBuilder.Entity<ProductOptionGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasMany(e => e.Options).WithOne(e => e.Group).HasForeignKey(e => e.GroupId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProductOptionItem>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.AdditionalPrice).HasColumnType("decimal(18,2)");
         });
+
+
 
         modelBuilder.Entity<Order>(entity =>
         {
@@ -136,6 +147,10 @@ public class EasyPizzaDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+            
+            // SetNull: se o produto for deletado, o item do pedido perde a referência, mas não é deletado (protege o histórico)
+            entity.HasOne(e => e.Product).WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.SetNull);
+            
             entity.HasMany(e => e.Addons).WithOne(e => e.OrderItem).HasForeignKey(e => e.OrderItemId);
         });
 
@@ -143,6 +158,7 @@ public class EasyPizzaDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Quantity).HasDefaultValue(1);
         });
 
         modelBuilder.Entity<StoreSettings>(entity =>

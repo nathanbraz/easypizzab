@@ -36,7 +36,7 @@ public class TenantsController : ControllerBase
 
         var existing = await _masterDb.Tenants.FirstOrDefaultAsync(t => t.Slug == slug);
         if (existing != null)
-            return BadRequest($"Já existe uma pizzaria cadastrada com o subdomínio/identificador '{slug}'.");
+            return BadRequest($"Já existe uma empresa cadastrada com o subdomínio/identificador '{slug}'.");
 
         var connectionString = !string.IsNullOrWhiteSpace(request.ConnectionString)
             ? request.ConnectionString

@@ -16,6 +16,8 @@ public class OrderRepository : Repository<Order>, IOrderRepository
         return await _dbSet
             .Include(o => o.Items)
             .ThenInclude(i => i.Product)
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Addons)
             .Include(o => o.Customer)
             .Include(o => o.Address)
             .Include(o => o.PaymentType)
@@ -29,6 +31,8 @@ public class OrderRepository : Repository<Order>, IOrderRepository
         return await _dbSet
             .Include(o => o.Items)
             .ThenInclude(i => i.Product)
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Addons)
             .Include(o => o.Customer)
             .Include(o => o.Address)
             .Include(o => o.PaymentType)
@@ -43,6 +47,8 @@ public class OrderRepository : Repository<Order>, IOrderRepository
         return await _dbSet
             .Include(o => o.Items)
             .ThenInclude(i => i.Product)
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Addons)
             .Include(o => o.Customer)
             .Include(o => o.Address)
             .Include(o => o.PaymentType)
@@ -60,6 +66,8 @@ public class OrderRepository : Repository<Order>, IOrderRepository
         return await _dbSet
             .Include(o => o.Items)
             .ThenInclude(i => i.Product)
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Addons)
             .Include(o => o.Customer)
             .Include(o => o.Address)
             .Include(o => o.PaymentType)
