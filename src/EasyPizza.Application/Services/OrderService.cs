@@ -13,7 +13,7 @@ public class OrderService(
     IWhatsappSender whatsappSender,
     ICatalogRepository catalogRepository) : IOrderService
 {
-    public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<OrderItemInput> items, string? couponCode = null)
+    public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<OrderItemInput> items, string? couponCode = null, decimal? changeFor = null)
     {
         var subTotal = items.Sum(i => i.Quantity * i.UnitPrice);
         
@@ -68,7 +68,7 @@ public class OrderService(
             }
         }
 
-        var order = new Order(customerId, customerAddressId, type, paymentTypeId, subTotal, deliveryFee, discountAmount, couponId, couponCode);
+        var order = new Order(customerId, customerAddressId, type, paymentTypeId, subTotal, deliveryFee, discountAmount, couponId, couponCode, changeFor);
 
         foreach (var item in items)
         {

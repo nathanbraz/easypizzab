@@ -11,7 +11,7 @@ public class EasyPizzaDbContextFactory : IDesignTimeDbContextFactory<EasyPizzaDb
         
         // This is a dummy connection string used ONLY for design-time tooling (EF Core Migrations).
         // The actual connection string is resolved dynamically at runtime by ITenantProvider in Program.cs.
-        optionsBuilder.UseNpgsql("Host=localhost;Database=dummy_migration;Username=postgres;Password=postgres");
+        optionsBuilder.UseNpgsql("Host=localhost;Database=easypizza_master;Username=postgres;Password=1234");
 
         return new EasyPizzaDbContext(optionsBuilder.Options);
     }

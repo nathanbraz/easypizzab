@@ -43,9 +43,11 @@ public class Order : IntEntity
     // Payload do código Pix gerado
     public string? PixCopyPasteCode { get; private set; }
     
-    // Para gateway externo se integrado no futuro
     public string? PaymentExternalId { get; private set; }
     public bool IsPaid { get; private set; }
+    
+    // Troco para (quando pagamento for dinheiro)
+    public decimal? ChangeFor { get; private set; }
 
     public Customer? Customer { get; private set; }
     public CustomerAddress? Address { get; private set; }
@@ -56,7 +58,7 @@ public class Order : IntEntity
 
     protected Order() { }
 
-    public Order(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, decimal subTotal, decimal deliveryFee, decimal discountAmount = 0, Guid? couponId = null, string? couponCode = null)
+    public Order(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, decimal subTotal, decimal deliveryFee, decimal discountAmount = 0, Guid? couponId = null, string? couponCode = null, decimal? changeFor = null)
     {
         CustomerId = customerId;
         CustomerAddressId = customerAddressId;
@@ -72,6 +74,7 @@ public class Order : IntEntity
         
         Status = OrderStatus.New;
         IsPaid = false;
+        ChangeFor = changeFor;
     }
 
     public void SetPixCode(string copyPasteCode)

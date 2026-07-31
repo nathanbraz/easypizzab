@@ -37,7 +37,7 @@ public class WhatsappBotService : IWhatsappBotService
 
         // Retorna o link mágico formatado com subdomínio lvh.me em desenvolvimento local
         var baseUrl = $"http://{tenantSlug}.lvh.me:3333";
-        return $"{baseUrl}/pedido?t={sessionResponse.SessionId}";
+        return $"{baseUrl}/?t={sessionResponse.SessionId}";
     }
 
     public async Task ProcessIncomingMessageAsync(string instanceName, string senderPhone, string messageText, string? senderName = null)

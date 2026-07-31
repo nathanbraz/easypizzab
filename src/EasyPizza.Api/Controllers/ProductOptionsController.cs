@@ -20,7 +20,7 @@ public class ProductOptionsController : ControllerBase
     public async Task<IActionResult> GetByProduct(string tenantSlug, Guid productId)
     {
         var groups = await _context.ProductOptionGroups
-            .Include(g => g.Options)
+            .Include(g => g.Options.OrderBy(o => o.DisplayOrder))
             .Where(g => g.ProductId == productId)
             .OrderBy(g => g.DisplayOrder)
             .ToListAsync();

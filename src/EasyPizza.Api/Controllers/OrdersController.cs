@@ -29,7 +29,7 @@ public class OrdersController : ControllerBase
                 i.Addons?.Select(a => new OrderItemAddonInput(a.ProductOptionItemId, a.AddonName, a.Price, a.Quantity)).ToList()
             )).ToList();
 
-            var order = await _orderService.CreateOrderAsync(request.CustomerId, request.CustomerAddressId, request.Type, request.PaymentTypeId, items, request.CouponCode);
+            var order = await _orderService.CreateOrderAsync(request.CustomerId, request.CustomerAddressId, request.Type, request.PaymentTypeId, items, request.CouponCode, request.ChangeFor);
             
             return Ok(new
             {
@@ -78,7 +78,7 @@ public class OrdersController : ControllerBase
     }
 }
 
-public record CreateOrderRequest(Guid CustomerId, Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items, string? CouponCode = null);
+public record CreateOrderRequest(Guid CustomerId, Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items, string? CouponCode = null, decimal? ChangeFor = null);
 public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice, string? Notes = null, List<OrderItemAddonRequest>? Addons = null);
 public record OrderItemAddonRequest(Guid? ProductOptionItemId, string AddonName, decimal Price, int Quantity = 1);
 public record UpdateStatusRequest(OrderStatus Status);

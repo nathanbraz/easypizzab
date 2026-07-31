@@ -10,6 +10,7 @@ public class Product : Entity
     public decimal Price { get; private set; }
     public List<string> ImageUrls { get; private set; } = new();
     public bool IsAvailable { get; private set; }
+    public bool ShowInCrossSell { get; private set; }
 
     public ProductCategory? Category { get; private set; }
     
@@ -22,15 +23,17 @@ public class Product : Entity
         Description = description;
         Price = price;
         IsAvailable = true;
+        ShowInCrossSell = false;
     }
 
-    public void UpdateDetails(string name, string description, decimal price, List<string> imageUrls, bool isAvailable)
+    public void UpdateDetails(string name, string description, decimal price, List<string> imageUrls, bool isAvailable, bool showInCrossSell = false)
     {
         Name = name;
         Description = description;
         Price = price;
         ImageUrls = imageUrls ?? new List<string>();
         IsAvailable = isAvailable;
+        ShowInCrossSell = showInCrossSell;
         SetUpdatedAt();
     }
 }

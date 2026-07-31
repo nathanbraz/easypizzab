@@ -10,7 +10,8 @@ public interface IOrderService
         OrderType type,
         Guid paymentTypeId,
         List<OrderItemInput> items,
-        string? couponCode = null);
+        string? couponCode = null,
+        decimal? changeFor = null);
 
     Task<IEnumerable<Order>> GetOrdersAsync();
     Task<Order?> GetOrderByIdAsync(int orderId);
