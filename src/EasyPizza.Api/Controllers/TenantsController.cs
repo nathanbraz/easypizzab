@@ -40,7 +40,7 @@ public class TenantsController : ControllerBase
 
         var connectionString = !string.IsNullOrWhiteSpace(request.ConnectionString)
             ? request.ConnectionString
-            : $"Host=localhost;Port=5432;Database=easypizza_{slug};Username=postgres;Password=1234";
+            : $"Host=db;Port=5432;Database=easypizza_{slug};Username=postgres;Password=1234";
 
         var tenant = new Tenant(request.Name, slug, connectionString);
         _masterDb.Tenants.Add(tenant);
