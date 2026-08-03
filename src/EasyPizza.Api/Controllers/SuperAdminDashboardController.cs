@@ -3,8 +3,11 @@ using EasyPizza.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace EasyPizza.Api.Controllers;
 
+[Authorize(Policy = "RequireMaster")]
 [ApiController]
 [Route("api/superadmin/dashboard")]
 public class SuperAdminDashboardController : ControllerBase

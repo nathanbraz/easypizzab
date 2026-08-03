@@ -2,6 +2,7 @@ using EasyPizza.Domain.Entities;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EasyPizza.Api.Controllers;
 
@@ -28,6 +29,7 @@ public class ProductOptionsController : ControllerBase
         return Ok(groups);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPost("{tenantSlug}/product/{productId:guid}")]
     public async Task<IActionResult> CreateGroup(string tenantSlug, Guid productId, [FromBody] CreateOptionGroupRequest request)
     {
@@ -46,6 +48,7 @@ public class ProductOptionsController : ControllerBase
         return Ok(group);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPut("{tenantSlug}/group/{id:guid}")]
     public async Task<IActionResult> UpdateGroup(string tenantSlug, Guid id, [FromBody] UpdateOptionGroupRequest request)
     {
@@ -58,6 +61,7 @@ public class ProductOptionsController : ControllerBase
         return Ok(group);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpDelete("{tenantSlug}/group/{id:guid}")]
     public async Task<IActionResult> DeleteGroup(string tenantSlug, Guid id)
     {
@@ -69,6 +73,7 @@ public class ProductOptionsController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPost("{tenantSlug}/group/{groupId:guid}/items")]
     public async Task<IActionResult> CreateItem(string tenantSlug, Guid groupId, [FromBody] CreateOptionItemRequest request)
     {
@@ -84,6 +89,7 @@ public class ProductOptionsController : ControllerBase
         return Ok(item);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPut("{tenantSlug}/item/{id:guid}")]
     public async Task<IActionResult> UpdateItem(string tenantSlug, Guid id, [FromBody] UpdateOptionItemRequest request)
     {
@@ -96,6 +102,7 @@ public class ProductOptionsController : ControllerBase
         return Ok(item);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpDelete("{tenantSlug}/item/{id:guid}")]
     public async Task<IActionResult> DeleteItem(string tenantSlug, Guid id)
     {

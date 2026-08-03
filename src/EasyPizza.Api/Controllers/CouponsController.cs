@@ -1,9 +1,11 @@
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EasyPizza.Api.Controllers;
 
+[Authorize(Policy = "RequireTenant")]
 [ApiController]
 [Route("api/[controller]")]
 public class CouponsController : ControllerBase

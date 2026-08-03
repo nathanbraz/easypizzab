@@ -1,6 +1,7 @@
 using EasyPizza.Application.Interfaces.Services;
 using EasyPizza.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EasyPizza.Api.Controllers;
 
@@ -62,6 +63,7 @@ public class OrdersController : ControllerBase
     }
 
     // Endpoint do Admin: KDS (Sistema de Tela de Cozinha)
+    [Authorize(Policy = "RequireTenant")]
     [HttpGet("admin/{tenantSlug}")]
     public async Task<IActionResult> GetOrders(string tenantSlug)
     {
@@ -70,6 +72,7 @@ public class OrdersController : ControllerBase
     }
 
     // Endpoint do Admin: Atualizar Status do KDS
+    [Authorize(Policy = "RequireTenant")]
     [HttpPatch("admin/{tenantSlug}/{orderId:int}/status")]
     public async Task<IActionResult> UpdateStatus(string tenantSlug, int orderId, [FromBody] UpdateStatusRequest request)
     {

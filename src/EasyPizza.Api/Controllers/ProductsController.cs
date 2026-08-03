@@ -1,6 +1,7 @@
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EasyPizza.Api.Controllers;
 
@@ -22,6 +23,7 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> Create(string tenantSlug, [FromBody] CreateProductRequest request)
     {
@@ -35,6 +37,7 @@ public class ProductsController : ControllerBase
         return Ok(product);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPut("{tenantSlug}/{id:guid}")]
     public async Task<IActionResult> Update(string tenantSlug, Guid id, [FromBody] UpdateProductRequest request)
     {
@@ -48,6 +51,7 @@ public class ProductsController : ControllerBase
         return Ok(product);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpDelete("{tenantSlug}/{id:guid}")]
     public async Task<IActionResult> Delete(string tenantSlug, Guid id)
     {

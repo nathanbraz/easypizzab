@@ -4,8 +4,11 @@ using EasyPizza.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace EasyPizza.Api.Controllers;
 
+[Authorize(Policy = "RequireMaster")]
 [ApiController]
 [Route("api/superadmin/[controller]")]
 public class TenantsController : ControllerBase

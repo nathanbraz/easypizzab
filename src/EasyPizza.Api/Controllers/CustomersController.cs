@@ -1,8 +1,10 @@
 using EasyPizza.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EasyPizza.Api.Controllers;
 
+[Authorize(Policy = "RequireTenant")]
 [ApiController]
 [Route("api/[controller]")]
 public class CustomersController : ControllerBase

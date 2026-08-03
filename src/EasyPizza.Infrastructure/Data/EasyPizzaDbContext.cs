@@ -1,9 +1,12 @@
+using EasyPizza.Domain.Constants;
 using EasyPizza.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace EasyPizza.Infrastructure.Data;
 
-public class EasyPizzaDbContext : DbContext
+public class EasyPizzaDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
 {
     public EasyPizzaDbContext(DbContextOptions<EasyPizzaDbContext> options) : base(options)
     {
@@ -14,6 +17,8 @@ public class EasyPizzaDbContext : DbContext
         optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         base.OnConfiguring(optionsBuilder);
     }
+
+    // A lógica de Model Creating foi unificada abaixo
 
     // Injeção opcional no OnConfiguring para cenários onde a connection string não foi passada nas options globais
     // Mas a melhor prática é configurar a resolução dinâmica no Program.cs
@@ -50,6 +55,15 @@ public class EasyPizzaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Renomeando as tabelas do Identity para remover o prefixo AspNet
+        modelBuilder.Entity<ApplicationUser>().ToTable("Users");
+        modelBuilder.Entity<ApplicationRole>().ToTable("Roles");
+        modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("UserRoles");
+        modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("UserClaims");
+        modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("UserLogins");
+        modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("RoleClaims");
+        modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("UserTokens");
 
         // --- Configurações das Entidades ---
         
@@ -182,7 +196,33 @@ public class EasyPizzaDbContext : DbContext
             new { Id = cardId, Name = "Cartão (Maquininha)", IsOnlinePayment = false, IsActive = true, DisplayOrder = 3, CreatedAt = seedDate }
         );
 
+        // --- Seed do Cargo "Owner" e suas Permissões ---
+        var ownerRoleId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        
+        modelBuilder.Entity<ApplicationRole>().HasData(
+            new ApplicationRole 
+            { 
+                Id = ownerRoleId, 
+                Name = "Owner", 
+                NormalizedName = "OWNER" 
+            }
+        );
 
+        var roleClaims = new List<IdentityRoleClaim<Guid>>();
+        int claimId = 1;
+
+        foreach (var permission in Permissions.All)
+        {
+            roleClaims.Add(new IdentityRoleClaim<Guid>
+            {
+                Id = claimId++,
+                RoleId = ownerRoleId,
+                ClaimType = "Permission",
+                ClaimValue = permission
+            });
+        }
+
+        modelBuilder.Entity<IdentityRoleClaim<Guid>>().HasData(roleClaims);
 
     }
 }

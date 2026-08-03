@@ -1,6 +1,7 @@
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EasyPizza.Api.Controllers;
 
@@ -22,6 +23,7 @@ public class CategoriesController : ControllerBase
         return Ok(categories.OrderBy(c => c.DisplayOrder));
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> Create(string tenantSlug, [FromBody] CreateCategoryRequest request)
     {
@@ -31,6 +33,7 @@ public class CategoriesController : ControllerBase
         return Ok(category);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPut("{tenantSlug}/{id:guid}")]
     public async Task<IActionResult> Update(string tenantSlug, Guid id, [FromBody] UpdateCategoryRequest request)
     {
@@ -44,6 +47,7 @@ public class CategoriesController : ControllerBase
         return Ok(category);
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpDelete("{tenantSlug}/{id:guid}")]
     public async Task<IActionResult> Delete(string tenantSlug, Guid id)
     {

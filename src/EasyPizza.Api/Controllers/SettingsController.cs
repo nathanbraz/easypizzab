@@ -1,11 +1,13 @@
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Domain.Entities;
 using EasyPizza.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace EasyPizza.Api.Controllers;
 
+[Authorize(Policy = "RequireTenant")]
 [ApiController]
 [Route("api/[controller]")]
 public class SettingsController : ControllerBase
