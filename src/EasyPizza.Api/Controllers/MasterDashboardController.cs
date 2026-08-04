@@ -9,12 +9,12 @@ namespace EasyPizza.Api.Controllers;
 
 [Authorize(Policy = "RequireMaster")]
 [ApiController]
-[Route("api/superadmin/dashboard")]
-public class SuperAdminDashboardController : ControllerBase
+[Route("api/master/dashboard")]
+public class MasterDashboardController : ControllerBase
 {
     private readonly MasterDbContext _masterDb;
 
-    public SuperAdminDashboardController(MasterDbContext masterDb)
+    public MasterDashboardController(MasterDbContext masterDb)
     {
         _masterDb = masterDb;
     }

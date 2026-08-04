@@ -9,13 +9,16 @@ using EasyPizza.Infrastructure.Repositories;
 using EasyPizza.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using EasyPizza.Api.Middlewares;
 using EasyPizza.Domain.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using FluentValidation;
+using EasyPizza.Application.Validators.Master;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddValidatorsFromAssemblyContaining<CreateMasterRoleValidator>();
 
 // Adiciona serviços ao contêiner.
 builder.Services.AddControllers()
@@ -134,12 +137,22 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireMaster", policy => policy.RequireClaim("Scope", "Master"));
     options.AddPolicy("RequireTenant", policy => policy.RequireClaim("Scope", "Tenant"));
 
-    // Políticas Granulares PBAC baseadas em Claims
-    foreach (var permission in Permissions.All)
+    // Políticas Granulares PBAC baseadas em Claims (Tenant)
+    foreach (var permission in EasyPizza.Domain.Constants.Permissions.All)
     {
         options.AddPolicy(permission, policy => 
         {
             policy.RequireClaim("Scope", "Tenant"); // Apenas lojistas têm permissões granulares
+            policy.RequireClaim("Permission", permission);
+        });
+    }
+
+    // Políticas Granulares PBAC baseadas em Claims (Master)
+    foreach (var permission in EasyPizza.Domain.Constants.MasterPermissions.All)
+    {
+        options.AddPolicy(permission, policy => 
+        {
+            policy.RequireClaim("Scope", "Master");
             policy.RequireClaim("Permission", permission);
         });
     }
@@ -164,13 +177,13 @@ builder.Services.AddScoped<IWhatsappBotService, WhatsappBotService>();
 
 var app = builder.Build();
 
-// Rodar o Migrador Automático e o Seeder do SuperAdmin (MasterUser)
+// Rodar o Migrador Automático e o Seeder do Master (MasterUser)
 using (var scope = app.Services.CreateScope())
 {
     // 1. Atualiza as tabelas de todos os bancos (Master e Pizzarias)
     await DatabaseMigrator.MigrateDatabasesAsync(scope.ServiceProvider);
 
-    // 2. Injeta o seu usuário SuperAdmin
+    // 2. Injeta o seu usuário Master
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
     await DatabaseSeeder.SeedMasterUserAsync(scope.ServiceProvider, config);
 }
@@ -202,7 +215,7 @@ app.Use(async (context, next) =>
     if (context.Request.Method == "OPTIONS" ||
         context.Request.Path.StartsWithSegments("/openapi") || 
         context.Request.Path.StartsWithSegments("/swagger") ||
-        context.Request.Path.StartsWithSegments("/api/superadmin") ||
+        context.Request.Path.StartsWithSegments("/api/master") ||
         context.Request.Path.StartsWithSegments("/api/auth/login") ||
         context.Request.Path.StartsWithSegments("/api/uploads"))
     {

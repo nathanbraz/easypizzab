@@ -14,6 +14,7 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<MasterUser> _masterUserManager;
     private readonly UserManager<ApplicationUser> _tenantUserManager;
+    private readonly RoleManager<MasterRole> _masterRoleManager;
     private readonly RoleManager<ApplicationRole> _tenantRoleManager;
     private readonly ITokenService _tokenService;
     private readonly ITenantProvider _tenantProvider;
@@ -21,12 +22,14 @@ public class AuthController : ControllerBase
     public AuthController(
         UserManager<MasterUser> masterUserManager,
         UserManager<ApplicationUser> tenantUserManager,
+        RoleManager<MasterRole> masterRoleManager,
         RoleManager<ApplicationRole> tenantRoleManager,
         ITokenService tokenService,
         ITenantProvider tenantProvider)
     {
         _masterUserManager = masterUserManager;
         _tenantUserManager = tenantUserManager;
+        _masterRoleManager = masterRoleManager;
         _tenantRoleManager = tenantRoleManager;
         _tokenService = tokenService;
         _tenantProvider = tenantProvider;
@@ -40,7 +43,7 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrEmpty(tenantSlug))
         {
-            // 1. Login Exclusivo do SuperAdmin (URL Global)
+            // 1. Login Exclusivo do Master (URL Global)
             var masterUser = await _masterUserManager.FindByEmailAsync(request.Email);
             if (masterUser != null)
             {
@@ -49,6 +52,19 @@ public class AuthController : ControllerBase
                 {
                     var roles = await _masterUserManager.GetRolesAsync(masterUser);
                     var role = roles.FirstOrDefault() ?? "Master";
+
+                    var permissions = new List<string>();
+                    foreach (var roleName in roles)
+                    {
+                        var mRole = await _masterRoleManager.FindByNameAsync(roleName);
+                        if (mRole != null)
+                        {
+                            var roleClaims = await _masterRoleManager.GetClaimsAsync(mRole);
+                            permissions.AddRange(roleClaims.Where(c => c.Type == "Permission").Select(c => c.Value));
+                        }
+                    }
+
+                    var uniquePermissions = permissions.Distinct().ToList();
                     
                     var token = _tokenService.GenerateToken(
                         masterUser.Id.ToString(), 
@@ -57,7 +73,8 @@ public class AuthController : ControllerBase
                         role, 
                         "Master", 
                         null, 
-                        masterUser.SecurityStamp); 
+                        masterUser.SecurityStamp,
+                        uniquePermissions); 
 
                     return Ok(new
                     {

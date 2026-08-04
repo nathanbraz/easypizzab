@@ -10,7 +10,7 @@ namespace EasyPizza.Api.Controllers;
 
 [Authorize(Policy = "RequireMaster")]
 [ApiController]
-[Route("api/superadmin/[controller]")]
+[Route("api/master/[controller]")]
 public class TenantsController : ControllerBase
 {
     private readonly MasterDbContext _masterDb;

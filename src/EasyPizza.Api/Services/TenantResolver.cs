@@ -32,7 +32,7 @@ public class HttpTenantProvider : ITenantProvider
         if (!string.IsNullOrEmpty(host) && host.Contains('.'))
         {
             var parts = host.Split('.');
-            if (parts[0] != "www" && parts[0] != "localhost" && parts[0] != "api" && parts[0] != "admin" && parts[0] != "superadmin")
+            if (parts[0] != "www" && parts[0] != "localhost" && parts[0] != "api" && parts[0] != "admin" && parts[0] != "master")
             {
                 hostSlug = parts[0];
             }

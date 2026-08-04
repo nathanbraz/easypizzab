@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using EasyPizza.Domain.Constants;
 using EasyPizza.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -15,20 +17,32 @@ public static class DatabaseSeeder
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<MasterRole>>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseSeeder");
 
-        var masterEmail = configuration["SuperAdminDefault:Email"];
-        var masterPassword = configuration["SuperAdminDefault:Password"];
-        var masterName = configuration["SuperAdminDefault:Name"];
+        var masterEmail = configuration["MasterDefault:Email"];
+        var masterPassword = configuration["MasterDefault:Password"];
+        var masterName = configuration["MasterDefault:Name"];
 
         if (string.IsNullOrEmpty(masterEmail) || string.IsNullOrEmpty(masterPassword))
         {
-            logger.LogWarning("SuperAdminDefault credentials not found in appsettings.json. Skipping MasterUser seed.");
+            logger.LogWarning("MasterDefault credentials not found in appsettings.json. Skipping MasterUser seed.");
             return;
         }
 
         // Criar Role se não existir
-        if (!await roleManager.RoleExistsAsync("SuperAdmin"))
+        var masterRole = await roleManager.FindByNameAsync("Master");
+        if (masterRole == null)
         {
-            await roleManager.CreateAsync(new MasterRole("SuperAdmin"));
+            masterRole = new MasterRole("Master");
+            await roleManager.CreateAsync(masterRole);
+        }
+
+        // Semear as permissões (claims) para o Master
+        var existingClaims = await roleManager.GetClaimsAsync(masterRole);
+        foreach (var permission in MasterPermissions.All)
+        {
+            if (!existingClaims.Any(c => c.Type == "Permission" && c.Value == permission))
+            {
+                await roleManager.AddClaimAsync(masterRole, new Claim("Permission", permission));
+            }
         }
 
         // Criar MasterUser se não existir
@@ -46,7 +60,7 @@ public static class DatabaseSeeder
             var result = await userManager.CreateAsync(masterUser, masterPassword);
             if (result.Succeeded)
             {
-                await userManager.AddToRoleAsync(masterUser, "SuperAdmin");
+                await userManager.AddToRoleAsync(masterUser, "Master");
                 logger.LogInformation("MasterUser {Email} created successfully.", masterEmail);
             }
             else
