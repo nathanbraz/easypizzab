@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EasyPizza.Api.Controllers;
 
-[Authorize(Policy = MasterPermissions.ManageMasterTeam)]
+[Authorize(Policy = "RequireMaster")]
 [ApiController]
 [Route("api/master/users")]
 public class MasterUsersController : ControllerBase
@@ -29,6 +29,7 @@ public class MasterUsersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = MasterPermissions.ViewMasterTeam)]
     public async Task<IActionResult> GetAll()
     {
         var users = await _userManager.Users.ToListAsync();
@@ -50,6 +51,7 @@ public class MasterUsersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = MasterPermissions.CreateMasterTeam)]
     public async Task<IActionResult> Create([FromBody] CreateMasterUserRequestDto request)
     {
         var validationResult = await _createValidator.ValidateAsync(request);
@@ -89,6 +91,7 @@ public class MasterUsersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = MasterPermissions.DeleteMasterTeam)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var user = await _userManager.FindByIdAsync(id.ToString());

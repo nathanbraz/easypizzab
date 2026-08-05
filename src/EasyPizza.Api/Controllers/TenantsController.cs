@@ -1,3 +1,4 @@
+using EasyPizza.Domain.Constants;
 using EasyPizza.Domain.Entities;
 using EasyPizza.Infrastructure.Data;
 using EasyPizza.Infrastructure.Repositories;
@@ -20,6 +21,7 @@ public class TenantsController : ControllerBase
         _masterDb = masterDb;
     }
 
+    [Authorize(Policy = MasterPermissions.ViewTenants)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -27,6 +29,7 @@ public class TenantsController : ControllerBase
         return Ok(tenants);
     }
 
+    [Authorize(Policy = MasterPermissions.CreateTenants)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTenantRequest request)
     {
@@ -70,6 +73,7 @@ public class TenantsController : ControllerBase
         return Ok(tenant);
     }
 
+    [Authorize(Policy = MasterPermissions.EditTenants)]
     [HttpPost("{slug}/migrate")]
     public async Task<IActionResult> MigrateTenant(string slug)
     {
@@ -94,6 +98,7 @@ public class TenantsController : ControllerBase
         }
     }
 
+    [Authorize(Policy = MasterPermissions.EditTenants)]
     [HttpPost("sync-all")]
     public async Task<IActionResult> SyncAllTenants()
     {
@@ -123,6 +128,7 @@ public class TenantsController : ControllerBase
         return Ok(new { success = true, message = "Sincronização em massa concluída.", details = results });
     }
 
+    [Authorize(Policy = MasterPermissions.BlockTenants)]
     [HttpPut("{slug}/toggle-status")]
     public async Task<IActionResult> ToggleStatus(string slug)
     {
@@ -144,3 +150,4 @@ public class TenantsController : ControllerBase
 }
 
 public record CreateTenantRequest(string Name, string? Slug, string? ConnectionString);
+

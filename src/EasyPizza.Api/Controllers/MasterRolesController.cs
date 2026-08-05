@@ -10,7 +10,7 @@ using System.Security.Claims;
 
 namespace EasyPizza.Api.Controllers;
 
-[Authorize(Policy = MasterPermissions.ManageMasterTeam)]
+[Authorize(Policy = "RequireMaster")]
 [ApiController]
 [Route("api/master/roles")]
 public class MasterRolesController : ControllerBase
@@ -44,6 +44,7 @@ public class MasterRolesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = MasterPermissions.ViewMasterRoles)]
     public async Task<IActionResult> GetAll()
     {
         var roles = await _roleManager.Roles.ToListAsync();
@@ -66,6 +67,7 @@ public class MasterRolesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = MasterPermissions.CreateMasterRoles)]
     public async Task<IActionResult> Create([FromBody] CreateMasterRoleRequestDto request)
     {
         var validationResult = await _createValidator.ValidateAsync(request);
@@ -96,6 +98,7 @@ public class MasterRolesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = MasterPermissions.EditMasterRoles)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMasterRoleRequestDto request)
     {
         var validationResult = await _updateValidator.ValidateAsync(request);
@@ -135,6 +138,7 @@ public class MasterRolesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = MasterPermissions.DeleteMasterRoles)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var role = await _roleManager.FindByIdAsync(id.ToString());
@@ -157,9 +161,18 @@ public class MasterRolesController : ControllerBase
         return permissionCode switch
         {
             MasterPermissions.ViewTenants => "Visualizar Lojistas",
-            MasterPermissions.ManageTenants => "Criar/Editar/Bloquear Lojistas",
+            MasterPermissions.CreateTenants => "Criar Lojistas",
+            MasterPermissions.EditTenants => "Editar Lojistas",
+            MasterPermissions.BlockTenants => "Bloquear/Desbloquear Lojistas",
             MasterPermissions.ViewMasterTeam => "Visualizar Equipe",
-            MasterPermissions.ManageMasterTeam => "Gerenciar Cargos e Equipe",
+            MasterPermissions.CreateMasterTeam => "Criar Equipe",
+            MasterPermissions.EditMasterTeam => "Editar Equipe",
+            MasterPermissions.BlockMasterTeam => "Inativar/Bloquear Equipe",
+            MasterPermissions.DeleteMasterTeam => "Excluir Equipe",
+            MasterPermissions.ViewMasterRoles => "Visualizar Cargos",
+            MasterPermissions.CreateMasterRoles => "Criar Cargos",
+            MasterPermissions.EditMasterRoles => "Editar Cargos",
+            MasterPermissions.DeleteMasterRoles => "Excluir Cargos",
             MasterPermissions.ViewBilling => "Visualizar Faturamento",
             MasterPermissions.ManageBilling => "Gerenciar Faturamento",
             _ => permissionCode
