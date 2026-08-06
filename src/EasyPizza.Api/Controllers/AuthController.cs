@@ -50,6 +50,11 @@ public class AuthController : ControllerBase
                 var isMasterValid = await _masterUserManager.CheckPasswordAsync(masterUser, request.Password);
                 if (isMasterValid)
                 {
+                    if (!masterUser.IsActive)
+                    {
+                        return Unauthorized(new { success = false, message = "Sua conta foi desativada pelo administrador." });
+                    }
+
                     var roles = await _masterUserManager.GetRolesAsync(masterUser);
                     var role = roles.FirstOrDefault() ?? "Master";
 

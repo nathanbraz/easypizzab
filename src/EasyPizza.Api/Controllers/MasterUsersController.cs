@@ -43,7 +43,8 @@ public class MasterUsersController : ControllerBase
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
-                Role = roles.FirstOrDefault()
+                Role = roles.FirstOrDefault(),
+                IsActive = user.IsActive
             });
         }
 
@@ -88,6 +89,87 @@ public class MasterUsersController : ControllerBase
         await _userManager.AddToRoleAsync(user, request.RoleName);
 
         return Ok(new { success = true, message = "Usuário criado com sucesso." });
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(Policy = MasterPermissions.EditMasterTeam)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMasterUserRequestDto request)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null) return NotFound(new { success = false, message = "Usuário não encontrado." });
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { success = false, message = "O nome é obrigatório." });
+        }
+
+        if (!await _roleManager.RoleExistsAsync(request.RoleName))
+        {
+            return BadRequest(new { success = false, message = "O cargo selecionado não existe." });
+        }
+
+        user.Name = request.Name;
+        var updateResult = await _userManager.UpdateAsync(user);
+
+        if (!updateResult.Succeeded)
+        {
+            return BadRequest(new { success = false, message = "Erro ao atualizar o usuário.", errors = updateResult.Errors.Select(e => e.Description) });
+        }
+
+        // Handle Role Update
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        var currentRole = currentRoles.FirstOrDefault();
+
+        // Evita remoção do último Master
+        if (currentRole == "Master" && request.RoleName != "Master")
+        {
+            var masterUsers = await _userManager.GetUsersInRoleAsync("Master");
+            if (masterUsers.Count <= 1)
+            {
+                return BadRequest(new { success = false, message = "Não é possível alterar o cargo do único administrador Master do sistema." });
+            }
+        }
+
+        if (currentRole != request.RoleName)
+        {
+            if (currentRole != null)
+                await _userManager.RemoveFromRoleAsync(user, currentRole);
+            
+            await _userManager.AddToRoleAsync(user, request.RoleName);
+        }
+
+        return Ok(new { success = true, message = "Usuário atualizado com sucesso." });
+    }
+
+    [HttpPatch("{id}/toggle-status")]
+    [Authorize(Policy = MasterPermissions.BlockMasterTeam)]
+    public async Task<IActionResult> ToggleStatus(Guid id)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null) return NotFound(new { success = false, message = "Usuário não encontrado." });
+
+        var roles = await _userManager.GetRolesAsync(user);
+        if (roles.Contains("Master") && user.IsActive)
+        {
+            var masterUsers = await _userManager.GetUsersInRoleAsync("Master");
+            // Only counting active masters
+            if (masterUsers.Count(u => u.IsActive) <= 1)
+            {
+                return BadRequest(new { success = false, message = "Não é possível bloquear o único administrador Master ativo do sistema." });
+            }
+        }
+
+        user.IsActive = !user.IsActive;
+        await _userManager.UpdateAsync(user);
+
+        // Se bloqueou, invalidamos as sessões
+        if (!user.IsActive)
+        {
+            await _userManager.UpdateSecurityStampAsync(user);
+        }
+
+        var statusName = user.IsActive ? "desbloqueado" : "bloqueado";
+        return Ok(new { success = true, message = $"Usuário {statusName} com sucesso.", isActive = user.IsActive });
     }
 
     [HttpDelete("{id}")]
