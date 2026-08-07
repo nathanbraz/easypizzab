@@ -61,6 +61,35 @@ public class TenantsController : ControllerBase
 
             var settingsRepo = new StoreSettingsRepository(tenantDbContext);
             await settingsRepo.GetSettingsAsync();
+
+            // Criação automática do Usuário Administrador
+            var adminRole = await tenantDbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Administrador");
+            if (adminRole != null)
+            {
+                var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<ApplicationUser>();
+                var adminUser = new ApplicationUser
+                {
+                    Id = Guid.NewGuid(),
+                    UserName = "admin",
+                    NormalizedUserName = "ADMIN",
+                    Email = null,
+                    EmailConfirmed = true,
+                    Name = "Administrador",
+                    IsActive = true,
+                    SecurityStamp = Guid.NewGuid().ToString()
+                };
+                
+                adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "Admin@123");
+                tenantDbContext.Users.Add(adminUser);
+                
+                tenantDbContext.UserRoles.Add(new Microsoft.AspNetCore.Identity.IdentityUserRole<Guid> 
+                { 
+                    UserId = adminUser.Id, 
+                    RoleId = adminRole.Id 
+                });
+                
+                await tenantDbContext.SaveChangesAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -149,5 +178,8 @@ public class TenantsController : ControllerBase
     }
 }
 
-public record CreateTenantRequest(string Name, string? Slug, string? ConnectionString);
+public record CreateTenantRequest(
+    string Name, 
+    string? Slug, 
+    string? ConnectionString);
 

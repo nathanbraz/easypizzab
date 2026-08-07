@@ -15,7 +15,17 @@ public static class Permissions
     public const string ManageCouriers = "Couriers:Manage";
 
     // Equipe (Team)
-    public const string ManageTeam = "Team:Manage";
+    public const string ViewTeam = "Team:View";
+    public const string CreateTeam = "Team:Create";
+    public const string EditTeam = "Team:Edit";
+    public const string BlockTeam = "Team:Block";
+    public const string DeleteTeam = "Team:Delete";
+
+    // Cargos (Roles)
+    public const string ViewRoles = "Roles:View";
+    public const string CreateRoles = "Roles:Create";
+    public const string EditRoles = "Roles:Edit";
+    public const string DeleteRoles = "Roles:Delete";
 
     // Clientes (Customers)
     public const string ViewCustomers = "Customers:View";
@@ -29,7 +39,15 @@ public static class Permissions
         ManageSettings,
         ManageCoupons,
         ManageCouriers,
-        ManageTeam,
+        ViewTeam,
+        CreateTeam,
+        EditTeam,
+        BlockTeam,
+        DeleteTeam,
+        ViewRoles,
+        CreateRoles,
+        EditRoles,
+        DeleteRoles,
         ViewCustomers
     };
 }

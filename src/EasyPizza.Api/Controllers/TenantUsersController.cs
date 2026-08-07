@@ -1,7 +1,6 @@
-using EasyPizza.Application.DTOs.Master;
+using EasyPizza.Application.DTOs.Tenant;
 using EasyPizza.Domain.Constants;
 using EasyPizza.Domain.Entities;
-using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,28 +8,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EasyPizza.Api.Controllers;
 
-[Authorize(Policy = "RequireMaster")]
+[Authorize(Policy = "RequireTenant")]
 [ApiController]
-[Route("api/master/users")]
-public class MasterUsersController : ControllerBase
+[Route("api/users")]
+public class TenantUsersController : ControllerBase
 {
-    private readonly UserManager<MasterUser> _userManager;
-    private readonly RoleManager<MasterRole> _roleManager;
-    private readonly IValidator<CreateMasterUserRequestDto> _createValidator;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
 
-    public MasterUsersController(
-        UserManager<MasterUser> userManager,
-        RoleManager<MasterRole> roleManager,
-        IValidator<CreateMasterUserRequestDto> createValidator)
+    public TenantUsersController(
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager)
     {
         _userManager = userManager;
         _roleManager = roleManager;
-        _createValidator = createValidator;
     }
 
-    [HttpGet]
-    [Authorize(Policy = MasterPermissions.ViewMasterTeam)]
-    public async Task<IActionResult> GetAll()
+    [HttpGet("{tenantSlug}")]
+    [Authorize(Policy = Permissions.ViewTeam)]
+    public async Task<IActionResult> GetAll(string tenantSlug)
     {
         var users = await _userManager.Users.ToListAsync();
         var result = new List<object>();
@@ -52,14 +48,13 @@ public class MasterUsersController : ControllerBase
         return Ok(new { success = true, data = result });
     }
 
-    [HttpPost]
-    [Authorize(Policy = MasterPermissions.CreateMasterTeam)]
-    public async Task<IActionResult> Create([FromBody] CreateMasterUserRequestDto request)
+    [HttpPost("{tenantSlug}")]
+    [Authorize(Policy = Permissions.CreateTeam)]
+    public async Task<IActionResult> Create(string tenantSlug, [FromBody] CreateTenantUserRequestDto request)
     {
-        var validationResult = await _createValidator.ValidateAsync(request);
-        if (!validationResult.IsValid)
+        if (!ModelState.IsValid)
         {
-            return BadRequest(new { success = false, errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+            return BadRequest(new { success = false, errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
         }
 
         var existingUser = await _userManager.FindByNameAsync(request.UserName.ToLower());
@@ -73,12 +68,13 @@ public class MasterUsersController : ControllerBase
             return BadRequest(new { success = false, message = "O cargo selecionado não existe." });
         }
 
-        var user = new MasterUser
+        var user = new ApplicationUser
         {
             UserName = request.UserName.ToLower(),
             Email = null,
             Name = request.Name,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            IsActive = true
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -92,17 +88,17 @@ public class MasterUsersController : ControllerBase
         return Ok(new { success = true, message = "Usuário criado com sucesso." });
     }
 
-    [HttpPut("{id}")]
-    [Authorize(Policy = MasterPermissions.EditMasterTeam)]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMasterUserRequestDto request)
+    [HttpPut("{tenantSlug}/{id:guid}")]
+    [Authorize(Policy = Permissions.EditTeam)]
+    public async Task<IActionResult> Update(string tenantSlug, Guid id, [FromBody] UpdateTenantUserRequestDto request)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(new { success = false, errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+        }
+
         var user = await _userManager.FindByIdAsync(id.ToString());
         if (user == null) return NotFound(new { success = false, message = "Usuário não encontrado." });
-
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequest(new { success = false, message = "O nome é obrigatório." });
-        }
 
         if (!await _roleManager.RoleExistsAsync(request.RoleName))
         {
@@ -117,17 +113,16 @@ public class MasterUsersController : ControllerBase
             return BadRequest(new { success = false, message = "Erro ao atualizar o usuário.", errors = updateResult.Errors.Select(e => e.Description) });
         }
 
-        // Handle Role Update
         var currentRoles = await _userManager.GetRolesAsync(user);
         var currentRole = currentRoles.FirstOrDefault();
 
-        // Evita remoção do último Master
-        if (currentRole == "Master" && request.RoleName != "Master")
+        // Evita remoção do último Owner
+        if (currentRole == "Administrador" && request.RoleName != "Administrador")
         {
-            var masterUsers = await _userManager.GetUsersInRoleAsync("Master");
-            if (masterUsers.Count <= 1)
+            var owners = await _userManager.GetUsersInRoleAsync("Administrador");
+            if (owners.Count <= 1)
             {
-                return BadRequest(new { success = false, message = "Não é possível alterar o cargo do único administrador Master do sistema." });
+                return BadRequest(new { success = false, message = "Não é possível alterar o cargo do único dono (Owner) do sistema." });
             }
         }
 
@@ -142,28 +137,26 @@ public class MasterUsersController : ControllerBase
         return Ok(new { success = true, message = "Usuário atualizado com sucesso." });
     }
 
-    [HttpPatch("{id}/toggle-status")]
-    [Authorize(Policy = MasterPermissions.BlockMasterTeam)]
-    public async Task<IActionResult> ToggleStatus(Guid id)
+    [HttpPatch("{tenantSlug}/{id:guid}/toggle-status")]
+    [Authorize(Policy = Permissions.BlockTeam)]
+    public async Task<IActionResult> ToggleStatus(string tenantSlug, Guid id)
     {
         var user = await _userManager.FindByIdAsync(id.ToString());
         if (user == null) return NotFound(new { success = false, message = "Usuário não encontrado." });
 
         var roles = await _userManager.GetRolesAsync(user);
-        if (roles.Contains("Master") && user.IsActive)
+        if (roles.Contains("Administrador") && user.IsActive)
         {
-            var masterUsers = await _userManager.GetUsersInRoleAsync("Master");
-            // Only counting active masters
-            if (masterUsers.Count(u => u.IsActive) <= 1)
+            var owners = await _userManager.GetUsersInRoleAsync("Administrador");
+            if (owners.Count(u => u.IsActive) <= 1)
             {
-                return BadRequest(new { success = false, message = "Não é possível bloquear o único administrador Master ativo do sistema." });
+                return BadRequest(new { success = false, message = "Não é possível bloquear o único dono (Owner) ativo do sistema." });
             }
         }
 
         user.IsActive = !user.IsActive;
         await _userManager.UpdateAsync(user);
 
-        // Se bloqueou, invalidamos as sessões
         if (!user.IsActive)
         {
             await _userManager.UpdateSecurityStampAsync(user);
@@ -173,21 +166,20 @@ public class MasterUsersController : ControllerBase
         return Ok(new { success = true, message = $"Usuário {statusName} com sucesso.", isActive = user.IsActive });
     }
 
-    [HttpDelete("{id}")]
-    [Authorize(Policy = MasterPermissions.DeleteMasterTeam)]
-    public async Task<IActionResult> Delete(Guid id)
+    [HttpDelete("{tenantSlug}/{id:guid}")]
+    [Authorize(Policy = Permissions.DeleteTeam)]
+    public async Task<IActionResult> Delete(string tenantSlug, Guid id)
     {
         var user = await _userManager.FindByIdAsync(id.ToString());
         if (user == null) return NotFound(new { success = false, message = "Usuário não encontrado." });
 
         var roles = await _userManager.GetRolesAsync(user);
-        if (roles.Contains("Master"))
+        if (roles.Contains("Administrador"))
         {
-            // Evitar que o único Master seja deletado
-            var masterUsers = await _userManager.GetUsersInRoleAsync("Master");
-            if (masterUsers.Count <= 1)
+            var owners = await _userManager.GetUsersInRoleAsync("Administrador");
+            if (owners.Count <= 1)
             {
-                return BadRequest(new { success = false, message = "Não é possível excluir o único administrador Master do sistema." });
+                return BadRequest(new { success = false, message = "Não é possível excluir o único dono (Owner) do sistema." });
             }
         }
 

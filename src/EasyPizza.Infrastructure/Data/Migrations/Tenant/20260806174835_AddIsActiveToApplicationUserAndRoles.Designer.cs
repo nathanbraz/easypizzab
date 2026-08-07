@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 {
     [DbContext(typeof(EasyPizzaDbContext))]
-    partial class EasyPizzaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806174835_AddIsActiveToApplicationUserAndRoles")]
+    partial class AddIsActiveToApplicationUserAndRoles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,9 +56,9 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            ConcurrencyStamp = "d07a0ad3-5e0f-4614-9fdc-53d1db9994f3",
-                            Name = "Administrador",
-                            NormalizedName = "ADMINISTRADOR"
+                            ConcurrencyStamp = "17dd542a-ac03-4049-b287-aa4ad190079b",
+                            Name = "Owner",
+                            NormalizedName = "OWNER"
                         });
                 });
 

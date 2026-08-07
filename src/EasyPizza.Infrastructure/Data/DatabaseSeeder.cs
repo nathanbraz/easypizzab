@@ -20,8 +20,9 @@ public static class DatabaseSeeder
         var masterEmail = configuration["MasterDefault:Email"];
         var masterPassword = configuration["MasterDefault:Password"];
         var masterName = configuration["MasterDefault:Name"];
+        var masterUserName = configuration["MasterDefault:UserName"];
 
-        if (string.IsNullOrEmpty(masterEmail) || string.IsNullOrEmpty(masterPassword))
+        if (string.IsNullOrEmpty(masterUserName) || string.IsNullOrEmpty(masterPassword))
         {
             logger.LogWarning("MasterDefault credentials not found in appsettings.json. Skipping MasterUser seed.");
             return;
@@ -46,14 +47,14 @@ public static class DatabaseSeeder
         }
 
         // Criar MasterUser se não existir
-        var existingUser = await userManager.FindByEmailAsync(masterEmail);
+        var existingUser = await userManager.FindByNameAsync(masterUserName.ToLower());
         if (existingUser == null)
         {
             var masterUser = new MasterUser
             {
-                UserName = masterEmail,
+                UserName = masterUserName.ToLower(),
                 Email = masterEmail,
-                Name = masterName ?? "Admin",
+                Name = masterName ?? "Administrador",
                 EmailConfirmed = true
             };
 

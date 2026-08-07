@@ -16,7 +16,7 @@ public class TokenService : ITokenService
         _configuration = configuration;
     }
 
-    public string GenerateToken(string userId, string email, string name, string role, string scope, string? tenantSlug, string securityStamp, List<string>? permissions = null)
+    public string GenerateToken(string userId, string userName, string name, string role, string scope, string? tenantSlug, string securityStamp, List<string>? permissions = null)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]!);
@@ -24,7 +24,7 @@ public class TokenService : ITokenService
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId),
-            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(JwtRegisteredClaimNames.UniqueName, userName),
             new Claim(JwtRegisteredClaimNames.Name, name),
             new Claim(ClaimTypes.Role, role),
             new Claim("Scope", scope), // "Master" ou "Tenant"

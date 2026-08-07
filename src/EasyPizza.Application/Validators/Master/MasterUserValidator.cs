@@ -12,9 +12,11 @@ public class CreateMasterUserValidator : AbstractValidator<CreateMasterUserReque
             .MinimumLength(3).WithMessage("O nome deve ter no mínimo 3 caracteres.")
             .MaximumLength(100).WithMessage("O nome deve ter no máximo 100 caracteres.");
 
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("O e-mail é obrigatório.")
-            .EmailAddress().WithMessage("O formato do e-mail é inválido.");
+        RuleFor(x => x.UserName)
+            .NotEmpty().WithMessage("O nome de usuário é obrigatório.")
+            .MinimumLength(3).WithMessage("O nome de usuário deve ter no mínimo 3 caracteres.")
+            .MaximumLength(50).WithMessage("O nome de usuário deve ter no máximo 50 caracteres.")
+            .Matches("^[a-z0-9._]+$").WithMessage("O nome de usuário deve conter apenas letras minúsculas, números, ponto ou underline.");
 
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("A senha é obrigatória.")

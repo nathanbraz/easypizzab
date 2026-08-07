@@ -203,8 +203,8 @@ public class EasyPizzaDbContext : IdentityDbContext<ApplicationUser, Application
             new ApplicationRole 
             { 
                 Id = ownerRoleId, 
-                Name = "Owner", 
-                NormalizedName = "OWNER" 
+                Name = "Administrador", 
+                NormalizedName = "ADMINISTRADOR" 
             }
         );
 

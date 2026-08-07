@@ -44,7 +44,7 @@ public class AuthController : ControllerBase
         if (string.IsNullOrEmpty(tenantSlug))
         {
             // 1. Login Exclusivo do Master (URL Global)
-            var masterUser = await _masterUserManager.FindByEmailAsync(request.Email);
+            var masterUser = await _masterUserManager.FindByNameAsync(request.UserName.ToLower());
             if (masterUser != null)
             {
                 var isMasterValid = await _masterUserManager.CheckPasswordAsync(masterUser, request.Password);
@@ -73,7 +73,7 @@ public class AuthController : ControllerBase
                     
                     var token = _tokenService.GenerateToken(
                         masterUser.Id.ToString(), 
-                        masterUser.Email!, 
+                        masterUser.UserName!, 
                         masterUser.Name, 
                         role, 
                         "Master", 
@@ -88,24 +88,29 @@ public class AuthController : ControllerBase
                         {
                             Token = token,
                             Name = masterUser.Name,
-                            Email = masterUser.Email!,
+                            UserName = masterUser.UserName!,
                             Role = role,
                             Scope = "Master"
                         }
                     });
                 }
             }
-            return Unauthorized(new { success = false, message = "E-mail ou senha inválidos para o Acesso Global." });
+            return Unauthorized(new { success = false, message = "Usuário ou senha inválidos para o Acesso Global." });
         }
         else
         {
             // 2. Login Exclusivo de Pizzarias (URL de Lojista)
-            var tenantUser = await _tenantUserManager.FindByEmailAsync(request.Email);
+            var tenantUser = await _tenantUserManager.FindByNameAsync(request.UserName.ToLower());
             if (tenantUser != null)
             {
                 var isTenantValid = await _tenantUserManager.CheckPasswordAsync(tenantUser, request.Password);
                 if (isTenantValid)
                 {
+                    if (!tenantUser.IsActive)
+                    {
+                        return Unauthorized(new { success = false, message = "Sua conta foi desativada pelo administrador da loja." });
+                    }
+
                     var roles = await _tenantUserManager.GetRolesAsync(tenantUser);
                     var role = roles.FirstOrDefault() ?? "Operator";
 
@@ -129,7 +134,7 @@ public class AuthController : ControllerBase
 
                     var token = _tokenService.GenerateToken(
                         tenantUser.Id.ToString(), 
-                        tenantUser.Email!, 
+                        tenantUser.UserName!, 
                         tenantUser.Name, 
                         role, 
                         "Tenant", 
@@ -144,14 +149,14 @@ public class AuthController : ControllerBase
                         {
                             Token = token,
                             Name = tenantUser.Name,
-                            Email = tenantUser.Email!,
+                            UserName = tenantUser.UserName!,
                             Role = role,
                             Scope = "Tenant"
                         }
                     });
                 }
             }
-            return Unauthorized(new { success = false, message = "E-mail ou senha inválidos." });
+            return Unauthorized(new { success = false, message = "Usuário ou senha inválidos." });
         }
     }
 
