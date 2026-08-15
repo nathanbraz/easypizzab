@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EasyPizza.Api.Controllers;
 
-[Authorize(Policy = "RequireTenant")]
 [ApiController]
 [Route("api/[controller]")]
 public class SettingsController : ControllerBase
@@ -21,6 +20,8 @@ public class SettingsController : ControllerBase
         _context = context;
     }
 
+    // Público de propósito: o cardápio e o checkout do cliente final (sem JWT de staff) precisam
+    // saber se a loja está aberta, taxa de entrega, pedido mínimo e as formas de pagamento disponíveis.
     [HttpGet]
     public async Task<IActionResult> GetSettings()
     {
@@ -34,6 +35,7 @@ public class SettingsController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "RequireTenant")]
     [HttpPut]
     public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request)
     {
@@ -63,6 +65,7 @@ public class SettingsController : ControllerBase
         return Ok(settings);
     }
     
+    [Authorize(Policy = "RequireTenant")]
     [HttpPut("payment-types/{id}/toggle")]
     public async Task<IActionResult> TogglePaymentType(Guid id, [FromBody] TogglePaymentRequest request)
     {

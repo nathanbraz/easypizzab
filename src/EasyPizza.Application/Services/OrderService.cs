@@ -32,6 +32,16 @@ public class OrderService(
         if (type == OrderType.Pickup && !settings.AcceptingPickup)
             throw new InvalidOperationException("A loja não está aceitando retirada no momento.");
 
+        // Endereço, se informado, precisa realmente pertencer a esse cliente — nunca confiar
+        // um CustomerAddressId arbitrário vindo do payload (ver RequireCustomerSession/CustomerId acima).
+        if (customerAddressId.HasValue)
+        {
+            var customerForAddressCheck = await customerRepository.GetByIdAsync(customerId);
+            var ownsAddress = customerForAddressCheck?.Addresses.Any(a => a.Id == customerAddressId.Value) ?? false;
+            if (!ownsAddress)
+                throw new InvalidOperationException("Endereço inválido para este cliente.");
+        }
+
         var paymentType = await paymentTypeRepository.GetByIdAsync(paymentTypeId);
         if (paymentType == null || !paymentType.IsActive)
             throw new InvalidOperationException("Forma de pagamento inválida ou indisponível.");

@@ -2,16 +2,27 @@
 
 Este documento descreve o passo a passo para inicializar, configurar e gerenciar o ambiente de desenvolvimento do EasyPizza utilizando Docker.
 
+> **Backend e frontend são duas stacks Docker independentes** (repos separados, cada um com seu próprio `docker-compose.yml`). Não há mais dependência cruzada entre os dois — o compose do backend não builda mais o frontend. Em dev, os dois rodam lado a lado no mesmo host e se comunicam via `localhost` (o frontend fala com a API em `http://localhost:5000/api`, configurável via `VITE_API_URL` no `docker-compose.yml` do frontend).
+
 ## 1. Subindo o Ambiente (O "Botão de Ligar")
 
-Sempre que você ligar o computador e for começar a programar, abra o terminal na pasta do backend (`easypizzab`) e rode o comando abaixo. Ele liga o Banco de Dados, pgAdmin, API (.NET) e Frontend (React/Vite) ao mesmo tempo.
+Sempre que você ligar o computador e for começar a programar, você precisa subir as **duas stacks**, uma em cada terminal (ou sequencialmente no mesmo terminal):
 
 ```bash
+# Backend: Banco de Dados, pgAdmin e API (.NET)
 cd /home/nathan/projects/easypizzab
 docker compose up --build -d
 ```
 
+```bash
+# Frontend: React/Vite
+cd /home/nathan/projects/easypizza
+docker compose up --build -d
+```
+
 *(O `--build` garante que se você instalou pacotes novos ou mudou o Dockerfile, ele vai reconstruir. O `-d` libera o seu terminal após ligar os containers).*
+
+Antes de subir o backend pela primeira vez, copie `easypizzab/.env.example` para `easypizzab/.env` e preencha os valores (chave JWT, senha do Postgres, senha do usuário Master) — esse arquivo nunca é versionado, é a única fonte de segredos do backend.
 
 ## 2. Acessando os Sistemas
 
@@ -41,10 +52,12 @@ Para visualizar o banco de dados visualmente pela primeira vez no pgAdmin, você
 Se você recriou os containers do zero ou puxou código novo que altera o banco de dados, você precisará aplicar as *Migrations* do EF Core.
 Como a nossa API de produção não tem as ferramentas do SDK instaladas, usamos um container temporário e descartável (que funciona como nossa esteira de CI/CD local) para fazer o serviço sujo.
 
+> **Importante desde que os segredos saíram do `appsettings.json`** (ver seção sobre `.env`): esse container temporário também precisa do `--env-file .env`, senão a API recusa subir por falta da chave JWT (`Jwt:Key`) e as ferramentas do EF Core não conseguem nem descobrir os `DbContext`s.
+
 Estando na pasta `/home/nathan/projects/easypizzab`, rode o comando abaixo:
 
 ```bash
-docker run --rm -v $(pwd):/app -w /app/src/EasyPizza.Api --network easypizzab_default mcr.microsoft.com/dotnet/sdk:10.0 bash -c "dotnet restore && dotnet build && dotnet tool install -g dotnet-ef && export PATH=\"\$PATH:/root/.dotnet/tools\" && dotnet ef database update --context MasterDbContext --connection \"Host=db;Database=easypizza_master;Username=postgres;Password=1234\""
+docker run --rm -v $(pwd):/app -w /app/src/EasyPizza.Api --network easypizzab_default --env-file .env mcr.microsoft.com/dotnet/sdk:10.0 bash -c "dotnet restore && dotnet build && dotnet tool install -g dotnet-ef && export PATH=\"\$PATH:/root/.dotnet/tools\" && dotnet ef database update --context MasterDbContext --connection \"Host=db;Database=easypizza_master;Username=postgres;Password=1234\""
 ```
 *Esse comando baixa o SDK, espelha seu código, compila, instala a ferramenta do EF, roda no banco Master e depois se auto-destrói.*
 
@@ -69,10 +82,10 @@ Para sair da tela de logs, basta apertar `Ctrl + C`.
 
 ## 6. Desligando Tudo
 
-Quando terminar de trabalhar e quiser liberar a memória RAM do computador, desligue a orquestra inteira com:
+Quando terminar de trabalhar e quiser liberar a memória RAM do computador, desligue as duas stacks:
 
 ```bash
-cd /home/nathan/projects/easypizzab
-docker compose down
+cd /home/nathan/projects/easypizzab && docker compose down
+cd /home/nathan/projects/easypizza && docker compose down
 ```
 *(O `down` desliga e remove os containers, mas seus dados do banco continuam salvos no volume `postgres_data`).*

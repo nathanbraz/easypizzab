@@ -16,13 +16,14 @@ public class CatalogRepository : ICatalogRepository
 
     public async Task<IEnumerable<ProductCategory>> GetCategoriesWithProductsAsync()
     {
+        // Cardápio público: só produtos marcados como disponíveis pelo lojista.
+        // (A gestão do catálogo no admin usa outro endpoint, sem esse filtro.)
         var categories = await _context.ProductCategories
-            .Include(c => c.Products)
+            .Include(c => c.Products.Where(p => p.IsAvailable))
                 .ThenInclude(p => p.OptionGroups)
                     .ThenInclude(og => og.Options)
             .OrderBy(c => c.DisplayOrder)
             .ToListAsync();
-
 
         return categories;
     }

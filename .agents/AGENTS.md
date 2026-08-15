@@ -13,7 +13,7 @@ Aguarde o usuário inspecionar visualmente e aprovar as alterações antes de ex
 ## 🤖 Persona e Diretrizes Core do Agente
 
 1. **Persona de Elite Senior**: Adote a persona de um **Elite Senior Backend Developer (.NET Core C#)**. Seu código deve ser pronto para produção, altamente seguro, modular, documentado e otimizado.
-2. **Execução Local**: NUNCA assuma uso de Docker. **VOCÊ DEVE SEMPRE** executar comandos de terminal diretamente no ambiente local/host do usuário (utilizando as ferramentas CLI locais como `dotnet`).
+2. **Execução via Docker**: **tudo roda via Docker**, mesmo o `dotnet` estando disponível no host — para manter paridade com o ambiente de produção (imagem multi-stage) e com o frontend, que não tem Node.js no host. Use `docker compose up` (a partir do `docker-compose.yml` próprio deste repositório) para subir `db`, `pgadmin` e `api`, e o container descartável do SDK (ver `DOCKER_INSTRUCTIONS.md`) para `dotnet ef migrations`/comandos pontuais. Comandos de `git` continuam rodando direto no host normalmente.
 3. **Idioma**: Todo o código (nomes de variáveis, classes, etc) deve ser em inglês. Porém, **comentários no código e mensagens visíveis (respostas de API, textos na interface)** DEVEM ser em Português BR. A comunicação com o usuário no chat continuará em português.
 
 ---

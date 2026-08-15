@@ -1,3 +1,4 @@
+using EasyPizza.Api.Authorization;
 using EasyPizza.Api.Services;
 using EasyPizza.Application.Interfaces;
 using EasyPizza.Application.Interfaces.Repositories;
@@ -8,6 +9,7 @@ using EasyPizza.Infrastructure.Data;
 using EasyPizza.Infrastructure.Repositories;
 using EasyPizza.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using EasyPizza.Domain.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -150,13 +152,18 @@ builder.Services.AddAuthorization(options =>
     // Políticas Granulares PBAC baseadas em Claims (Master)
     foreach (var permission in EasyPizza.Domain.Constants.MasterPermissions.All)
     {
-        options.AddPolicy(permission, policy => 
+        options.AddPolicy(permission, policy =>
         {
             policy.RequireClaim("Scope", "Master");
             policy.RequireClaim("Permission", permission);
         });
     }
+
+    // Sessão do cliente final (magic link via WhatsApp) — não é JWT, ver CustomerSessionAuthorizationHandler
+    options.AddPolicy("RequireCustomerSession", policy => policy.Requirements.Add(new CustomerSessionRequirement()));
 });
+
+builder.Services.AddScoped<IAuthorizationHandler, CustomerSessionAuthorizationHandler>();
 
 // Injeção de Dependência para Repositórios e Serviços
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -167,6 +174,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<ICurrentCustomerAccessor, CurrentCustomerAccessor>();
 builder.Services.AddScoped<ICouponRepository, CouponRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICourierRepository, CourierRepository>();

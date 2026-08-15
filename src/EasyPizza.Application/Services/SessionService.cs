@@ -83,7 +83,11 @@ public class SessionService : ISessionService
             summary = $"{lastOrder.Items.Count} item(s) - {firstItem.Product?.Name} {(lastOrder.Items.Count > 1 ? "..." : "")}";
         }
 
-        var defaultAddress = customer.Addresses.OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+        var addresses = customer.Addresses
+            .OrderByDescending(a => a.IsDefault)
+            .ThenByDescending(a => a.CreatedAt)
+            .ToList();
+        var defaultAddress = addresses.FirstOrDefault(a => a.IsDefault) ?? addresses.FirstOrDefault();
 
         return new SessionInfoResponse
         {
@@ -91,9 +95,23 @@ public class SessionService : ISessionService
             CustomerId = customer.Id,
             CustomerName = customer.Name ?? "Visitante",
             CustomerPhoneNumber = customer.PhoneNumber,
+            Addresses = addresses,
             DefaultAddress = defaultAddress,
             LastOrderId = lastOrder?.Id,
             LastOrderSummary = summary
         };
+    }
+
+    // Chamado ao concluir um pedido com sucesso: a sessão vale por até 2h OU até o cliente
+    // fechar um pedido, o que vier primeiro. Para pedir de novo, ele volta ao WhatsApp por um novo link.
+    public async Task MarkSessionAsUsedAsync(Guid sessionId)
+    {
+        var session = await _sessionRepository.GetByIdAsync(sessionId);
+        if (session == null)
+            return;
+
+        session.MarkAsUsed();
+        await _sessionRepository.UpdateAsync(session);
+        await _sessionRepository.SaveChangesAsync();
     }
 }

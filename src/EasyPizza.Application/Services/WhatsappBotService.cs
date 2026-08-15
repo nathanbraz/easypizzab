@@ -2,6 +2,7 @@ using EasyPizza.Application.DTOs;
 using EasyPizza.Application.Interfaces;
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Application.Interfaces.Services;
+using Microsoft.Extensions.Configuration;
 
 namespace EasyPizza.Application.Services;
 
@@ -11,32 +12,41 @@ public class WhatsappBotService : IWhatsappBotService
     private readonly ISessionService _sessionService;
     private readonly IWhatsappSender _whatsappSender;
     private readonly ITenantProvider _tenantProvider;
+    private readonly IConfiguration _configuration;
 
     public WhatsappBotService(
         IStoreSettingsRepository settingsRepository,
         ISessionService sessionService,
         IWhatsappSender whatsappSender,
-        ITenantProvider tenantProvider)
+        ITenantProvider tenantProvider,
+        IConfiguration configuration)
     {
         _settingsRepository = settingsRepository;
         _sessionService = sessionService;
         _whatsappSender = whatsappSender;
         _tenantProvider = tenantProvider;
+        _configuration = configuration;
     }
 
-    public async Task<string> GenerateOrderLinkAsync(string phone, string? name = null)
+    public async Task<string?> GenerateOrderLinkAsync(string phone, string? name = null)
     {
+        // Sem tenant resolvido não há como saber pra qual loja o link deve apontar —
+        // melhor não gerar um link errado do que arriscar apontar pra outra loja (fallback antigo era fixo).
+        var tenant = _tenantProvider.GetTenant();
+        if (tenant == null)
+            return null;
+
         var sessionResponse = await _sessionService.GenerateMagicLinkSessionAsync(new GenerateSessionRequest
         {
             PhoneNumber = phone,
             Name = name
         });
 
-        var tenant = _tenantProvider.GetTenant();
-        var tenantSlug = tenant?.Slug ?? "pizzariabrazil";
+        // "{slug}" é substituído pelo slug do tenant atual. Em dev aponta pro Vite local (lvh.me);
+        // em produção, configurar via variável de ambiente Frontend__BaseUrlTemplate.
+        var baseUrlTemplate = _configuration["Frontend:BaseUrlTemplate"] ?? "http://{slug}.lvh.me:3333";
+        var baseUrl = baseUrlTemplate.Replace("{slug}", tenant.Slug);
 
-        // Retorna o link mágico formatado com subdomínio lvh.me em desenvolvimento local
-        var baseUrl = $"http://{tenantSlug}.lvh.me:3333";
         return $"{baseUrl}/?t={sessionResponse.SessionId}";
     }
 
@@ -58,6 +68,9 @@ public class WhatsappBotService : IWhatsappBotService
         if (cleanText == "1" || cleanText == "um" || cleanText == "cardapio" || cleanText == "cardápio" || cleanText == "pedido" || cleanText == "fazer pedido")
         {
             var orderLink = await GenerateOrderLinkAsync(cleanPhone, senderName);
+            if (orderLink == null)
+                return; // Loja não identificada a partir do webhook — nada seguro a fazer aqui
+
             var responseText = $"Que ótimo! 🍕 Clique no link abaixo para acessar nosso Cardápio Digital com seu token de segurança exclusivo e fazer seu pedido rapidamente:\n\n👉 {orderLink}\n\n*Nota: Este link é autenticado e exclusivo para o seu WhatsApp!*";
             await _whatsappSender.SendTextMessageAsync(cleanPhone, responseText);
         }

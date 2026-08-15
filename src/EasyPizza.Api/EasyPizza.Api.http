@@ -1,6 +1,219 @@
-@EasyPizza.Api_HostAddress = http://localhost:5057
+@host = http://localhost:5000
+@tenantSlug = casadapizza
 
-GET {{EasyPizza.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### =========================================
+### AUTENTICAÇÃO (Staff — Lojista/Master)
+### =========================================
 
-###
+### Login como lojista (Tenant) — usuário padrão criado automaticamente por EnsureAdminUserAsync
+# @name loginTenant
+POST {{host}}/api/auth/login
+Content-Type: application/json
+X-Tenant-Slug: {{tenantSlug}}
+
+{
+  "userName": "admin",
+  "password": "Admin@123"
+}
+
+### Login como Master (dono da plataforma) — senha vem do MasterDefault__Password no .env
+# @name loginMaster
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "nathan",
+  "password": "SUA_SENHA_MASTER_AQUI"
+}
+
+### Logout (revoga o JWT trocando o SecurityStamp)
+POST {{host}}/api/auth/logout
+Authorization: Bearer {{loginTenant.response.body.data.token}}
+
+
+### =========================================
+### SESSÃO DO CLIENTE FINAL (Magic Link — token opaco, não é JWT)
+### =========================================
+
+### Gerar magic link (normalmente feito pelo bot do WhatsApp — aqui é pra simular manualmente)
+# @name magicLink
+POST {{host}}/api/sessions/magic-link
+Content-Type: application/json
+X-Tenant-Slug: {{tenantSlug}}
+
+{
+  "phoneNumber": "5562999990000",
+  "name": "Cliente de Teste"
+}
+
+### Consumir o magic link (o que o frontend chama ao abrir o link) — devolve os dados do cliente
+GET {{host}}/api/sessions/{{magicLink.response.body.data.sessionId}}/customer-info
+X-Tenant-Slug: {{tenantSlug}}
+
+
+### =========================================
+### ENDEREÇOS DO CLIENTE (requer sessão de cliente válida — X-Customer-Session)
+### =========================================
+
+### Listar endereços salvos (padrão primeiro)
+GET {{host}}/api/customers/{{tenantSlug}}/addresses
+X-Tenant-Slug: {{tenantSlug}}
+X-Customer-Session: {{magicLink.response.body.data.sessionId}}
+
+### Adicionar um novo endereço (o primeiro endereço do cliente vira padrão automaticamente)
+# @name addAddress
+POST {{host}}/api/customers/{{tenantSlug}}/addresses
+Content-Type: application/json
+X-Tenant-Slug: {{tenantSlug}}
+X-Customer-Session: {{magicLink.response.body.data.sessionId}}
+
+{
+  "label": "Casa",
+  "street": "Rua de Teste",
+  "number": "123",
+  "neighborhood": "Centro",
+  "city": "Goiânia",
+  "state": "GO",
+  "zipCode": "74000000"
+}
+
+### Editar um endereço existente (a posse é validada no servidor, não confia em quem chama)
+PUT {{host}}/api/customers/{{tenantSlug}}/addresses/{{addAddress.response.body.data.id}}
+Content-Type: application/json
+X-Tenant-Slug: {{tenantSlug}}
+X-Customer-Session: {{magicLink.response.body.data.sessionId}}
+
+{
+  "label": "Casa (editado)",
+  "street": "Rua de Teste",
+  "number": "456",
+  "neighborhood": "Centro",
+  "city": "Goiânia",
+  "state": "GO",
+  "zipCode": "74000000",
+  "isDefault": true
+}
+
+
+### =========================================
+### CARDÁPIO E CONFIGURAÇÕES (públicos, sem autenticação de propósito)
+### =========================================
+
+### Cardápio completo da loja (só produtos com IsAvailable = true)
+GET {{host}}/api/menu/{{tenantSlug}}
+X-Tenant-Slug: {{tenantSlug}}
+
+### Configurações da loja + formas de pagamento (o checkout do cliente final precisa disso)
+GET {{host}}/api/settings
+X-Tenant-Slug: {{tenantSlug}}
+
+### Validar cupom de desconto
+GET {{host}}/api/coupons/validate/PROMO10
+X-Tenant-Slug: {{tenantSlug}}
+
+
+### =========================================
+### PEDIDOS
+### =========================================
+
+### Criar um pedido (requer sessão de cliente válida — troque paymentTypeId/productId por valores reais do seu banco)
+POST {{host}}/api/orders/{{tenantSlug}}
+Content-Type: application/json
+X-Tenant-Slug: {{tenantSlug}}
+X-Customer-Session: {{magicLink.response.body.data.sessionId}}
+
+{
+  "type": 1,
+  "paymentTypeId": "00000000-0000-0000-0000-000000000000",
+  "customerAddressId": "{{addAddress.response.body.data.id}}",
+  "items": [
+    {
+      "productId": "00000000-0000-0000-0000-000000000000",
+      "quantity": 1,
+      "unitPrice": 35.00
+    }
+  ]
+}
+
+### Consultar um pedido pelo id (público — usado pela página de rastreamento)
+GET {{host}}/api/orders/{{tenantSlug}}/1
+
+### Histórico de pedidos de um cliente (público — usado em "Meus Pedidos")
+GET {{host}}/api/orders/{{tenantSlug}}/customer/00000000-0000-0000-0000-000000000000
+
+### Painel do lojista (KDS): listar pedidos — requer JWT de staff
+GET {{host}}/api/orders/admin/{{tenantSlug}}
+Authorization: Bearer {{loginTenant.response.body.data.token}}
+
+### Painel do lojista: atualizar status de um pedido (dispara notificação de WhatsApp)
+PATCH {{host}}/api/orders/admin/{{tenantSlug}}/1/status
+Authorization: Bearer {{loginTenant.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": 2
+}
+
+
+### =========================================
+### WHATSAPP BOT (webhook — simula mensagens recebidas do provedor)
+### =========================================
+
+### Bot: saudação inicial (qualquer texto que não seja "1" ou "2")
+POST {{host}}/api/webhook/whatsapp/{{tenantSlug}}
+Content-Type: application/json
+
+{
+  "phone": "5511999999999",
+  "text": "Oi, boa noite!",
+  "name": "Cliente WhatsApp"
+}
+
+### Bot: opção 1 — gera e envia o link mágico do cardápio
+POST {{host}}/api/webhook/whatsapp/{{tenantSlug}}
+Content-Type: application/json
+
+{
+  "phone": "5511999999999",
+  "text": "1"
+}
+
+### Bot: opção 2 — transfere pro atendente humano
+POST {{host}}/api/webhook/whatsapp/{{tenantSlug}}
+Content-Type: application/json
+
+{
+  "phone": "5511999999999",
+  "text": "2"
+}
+
+
+### =========================================
+### MASTER (SaaS — requer login como Master)
+### =========================================
+
+### Listar tenants cadastrados
+GET {{host}}/api/master/Tenants
+Authorization: Bearer {{loginMaster.response.body.data.token}}
+
+### Criar um novo tenant (provisiona o banco isolado, roda migrations e cria o admin padrão)
+POST {{host}}/api/master/Tenants
+Authorization: Bearer {{loginMaster.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Nova Pizzaria",
+  "slug": "novapizzaria"
+}
+
+### Re-migrar/sincronizar um tenant (ex: após deploy com migration nova, ou pra corrigir tenant sem admin)
+POST {{host}}/api/master/Tenants/{{tenantSlug}}/migrate
+Authorization: Bearer {{loginMaster.response.body.data.token}}
+
+### Sincronizar todos os tenants de uma vez (migra todos, isolado por tenant — um falho não trava os outros)
+POST {{host}}/api/master/Tenants/sync-all
+Authorization: Bearer {{loginMaster.response.body.data.token}}
+
+### Painel do dono da plataforma: métricas gerais
+GET {{host}}/api/master/dashboard
+Authorization: Bearer {{loginMaster.response.body.data.token}}

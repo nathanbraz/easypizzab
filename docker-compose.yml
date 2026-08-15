@@ -4,7 +4,7 @@ services:
     container_name: easypizza_postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1234
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -32,26 +32,10 @@ services:
       - "5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+    env_file:
+      - .env
     depends_on:
       - db
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ../easypizza
-      dockerfile: Dockerfile
-    container_name: easypizza_frontend
-    ports:
-      - "3333:3333"
-    volumes:
-      - ../easypizza/src:/app/src
-      - ../easypizza/public:/app/public
-      - ../easypizza/index.html:/app/index.html
-      - ../easypizza/vite.config.ts:/app/vite.config.ts
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    depends_on:
-      - api
     restart: unless-stopped
 
 volumes:

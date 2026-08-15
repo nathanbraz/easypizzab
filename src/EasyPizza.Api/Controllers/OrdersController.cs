@@ -1,3 +1,4 @@
+using EasyPizza.Application.Interfaces;
 using EasyPizza.Application.Interfaces.Services;
 using EasyPizza.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -10,18 +11,25 @@ namespace EasyPizza.Api.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly IOrderService _orderService;
+    private readonly ISessionService _sessionService;
+    private readonly ICurrentCustomerAccessor _currentCustomer;
 
-    public OrdersController(IOrderService orderService)
+    public OrdersController(IOrderService orderService, ISessionService sessionService, ICurrentCustomerAccessor currentCustomer)
     {
         _orderService = orderService;
+        _sessionService = sessionService;
+        _currentCustomer = currentCustomer;
     }
 
-    // Endpoint do Cliente: Fazer um pedido
+    // Endpoint do Cliente: Fazer um pedido.
+    // Exige sessão de cliente válida (magic link) — o CustomerId nunca vem do payload, só da sessão validada.
+    [Authorize(Policy = "RequireCustomerSession")]
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> CreateOrder(string tenantSlug, [FromBody] CreateOrderRequest request)
     {
-        try 
+        try
         {
+            var customerId = _currentCustomer.CustomerId!.Value;
             var items = request.Items.Select(i => new OrderItemInput(
                 i.ProductId,
                 i.Quantity,
@@ -30,8 +38,11 @@ public class OrdersController : ControllerBase
                 i.Addons?.Select(a => new OrderItemAddonInput(a.ProductOptionItemId, a.AddonName, a.Price, a.Quantity)).ToList()
             )).ToList();
 
-            var order = await _orderService.CreateOrderAsync(request.CustomerId, request.CustomerAddressId, request.Type, request.PaymentTypeId, items, request.CouponCode, request.ChangeFor);
-            
+            var order = await _orderService.CreateOrderAsync(customerId, request.CustomerAddressId, request.Type, request.PaymentTypeId, items, request.CouponCode, request.ChangeFor);
+
+            // Pedido concluído: a sessão do magic link não serve mais. Pra pedir de novo, volta ao WhatsApp.
+            await _sessionService.MarkSessionAsUsedAsync(_currentCustomer.SessionId!.Value);
+
             return Ok(new
             {
                 success = true,
@@ -81,7 +92,7 @@ public class OrdersController : ControllerBase
     }
 }
 
-public record CreateOrderRequest(Guid CustomerId, Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items, string? CouponCode = null, decimal? ChangeFor = null);
+public record CreateOrderRequest(Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items, string? CouponCode = null, decimal? ChangeFor = null);
 public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice, string? Notes = null, List<OrderItemAddonRequest>? Addons = null);
 public record OrderItemAddonRequest(Guid? ProductOptionItemId, string AddonName, decimal Price, int Quantity = 1);
 public record UpdateStatusRequest(OrderStatus Status);

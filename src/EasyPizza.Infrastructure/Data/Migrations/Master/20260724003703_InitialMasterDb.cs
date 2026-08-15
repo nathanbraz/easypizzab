@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace EasyPizza.Infrastructure.Migrations.MasterDb
+namespace EasyPizza.Infrastructure.Data.Migrations.Master
 {
     /// <inheritdoc />
     public partial class InitialMasterDb : Migration

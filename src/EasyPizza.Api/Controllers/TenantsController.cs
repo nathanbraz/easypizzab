@@ -62,44 +62,56 @@ public class TenantsController : ControllerBase
             var settingsRepo = new StoreSettingsRepository(tenantDbContext);
             await settingsRepo.GetSettingsAsync();
 
-            // Criação automática do Usuário Administrador
-            var adminRole = await tenantDbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Administrador");
-            if (adminRole != null)
-            {
-                var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<ApplicationUser>();
-                var adminUser = new ApplicationUser
-                {
-                    Id = Guid.NewGuid(),
-                    UserName = "admin",
-                    NormalizedUserName = "ADMIN",
-                    Email = null,
-                    EmailConfirmed = true,
-                    Name = "Administrador",
-                    IsActive = true,
-                    SecurityStamp = Guid.NewGuid().ToString()
-                };
-                
-                adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "Admin@123");
-                tenantDbContext.Users.Add(adminUser);
-                
-                tenantDbContext.UserRoles.Add(new Microsoft.AspNetCore.Identity.IdentityUserRole<Guid> 
-                { 
-                    UserId = adminUser.Id, 
-                    RoleId = adminRole.Id 
-                });
-                
-                await tenantDbContext.SaveChangesAsync();
-            }
+            await EnsureAdminUserAsync(tenantDbContext);
         }
         catch (Exception ex)
         {
-            return Ok(new { 
-                tenant, 
-                migrationWarning = "Tenant salvo no Banco Mestre, mas ocorreu um erro na migração automática do banco físico: " + ex.Message 
+            return Ok(new {
+                tenant,
+                migrationWarning = "Tenant salvo no Banco Mestre, mas ocorreu um erro na migração automática do banco físico: " + ex.Message
             });
         }
 
         return Ok(tenant);
+    }
+
+    // Garante que o tenant tem pelo menos um usuário com o papel "Administrador".
+    // Idempotente (não cria duplicado se já existir) — usado na criação do tenant e nas rotas de
+    // sincronização, pra tenants mais antigos (criados antes dessa auto-criação existir, ou cuja
+    // criação falhou parcialmente) também ficarem com acesso.
+    private static async Task EnsureAdminUserAsync(EasyPizzaDbContext tenantDbContext)
+    {
+        var adminRole = await tenantDbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Administrador");
+        if (adminRole == null)
+            return;
+
+        var hasAdminUser = await tenantDbContext.UserRoles.AnyAsync(ur => ur.RoleId == adminRole.Id);
+        if (hasAdminUser)
+            return;
+
+        var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<ApplicationUser>();
+        var adminUser = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = "admin",
+            NormalizedUserName = "ADMIN",
+            Email = null,
+            EmailConfirmed = true,
+            Name = "Administrador",
+            IsActive = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+
+        adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "Admin@123");
+        tenantDbContext.Users.Add(adminUser);
+
+        tenantDbContext.UserRoles.Add(new Microsoft.AspNetCore.Identity.IdentityUserRole<Guid>
+        {
+            UserId = adminUser.Id,
+            RoleId = adminRole.Id
+        });
+
+        await tenantDbContext.SaveChangesAsync();
     }
 
     [Authorize(Policy = MasterPermissions.EditTenants)]
@@ -118,6 +130,8 @@ public class TenantsController : ControllerBase
 
             var settingsRepo = new StoreSettingsRepository(tenantDbContext);
             await settingsRepo.GetSettingsAsync();
+
+            await EnsureAdminUserAsync(tenantDbContext);
 
             return Ok(new { success = true, message = $"Banco de dados de {tenant.Name} ({tenant.Slug}) migrado com sucesso." });
         }
@@ -142,9 +156,11 @@ public class TenantsController : ControllerBase
                 optionsBuilder.UseNpgsql(tenant.ConnectionString);
                 using var tenantDbContext = new EasyPizzaDbContext(optionsBuilder.Options);
                 await tenantDbContext.Database.MigrateAsync();
-                
+
                 var settingsRepo = new StoreSettingsRepository(tenantDbContext);
                 await settingsRepo.GetSettingsAsync();
+
+                await EnsureAdminUserAsync(tenantDbContext);
 
                 results.Add(new { slug = tenant.Slug, status = "Success" });
             }

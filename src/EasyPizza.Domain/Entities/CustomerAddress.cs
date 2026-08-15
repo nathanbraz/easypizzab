@@ -5,6 +5,10 @@ namespace EasyPizza.Domain.Entities;
 public class CustomerAddress : Entity
 {
     public Guid CustomerId { get; private set; }
+
+    // Apelido escolhido pelo cliente pra reconhecer o endereço numa lista (ex: "Casa", "Trabalho").
+    // Opcional — sem label, o front mostra a rua/número como identificação.
+    public string? Label { get; private set; }
     public string Street { get; private set; }
     public string Number { get; private set; }
     public string Neighborhood { get; private set; }
@@ -14,7 +18,7 @@ public class CustomerAddress : Entity
     public string? Complement { get; private set; }
     public double? Latitude { get; private set; }
     public double? Longitude { get; private set; }
-    
+
     // Geralmente clientes têm um endereço principal
     public bool IsDefault { get; private set; }
 
@@ -22,9 +26,10 @@ public class CustomerAddress : Entity
 
     protected CustomerAddress() { }
 
-    public CustomerAddress(Guid customerId, string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null, bool isDefault = false, double? latitude = null, double? longitude = null)
+    public CustomerAddress(Guid customerId, string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null, bool isDefault = false, double? latitude = null, double? longitude = null, string? label = null)
     {
         CustomerId = customerId;
+        Label = label;
         Street = street;
         Number = number;
         Neighborhood = neighborhood;
@@ -42,15 +47,16 @@ public class CustomerAddress : Entity
         IsDefault = true;
         SetUpdatedAt();
     }
-    
+
     public void RemoveDefault()
     {
         IsDefault = false;
         SetUpdatedAt();
     }
 
-    public void UpdateAddress(string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null, double? latitude = null, double? longitude = null)
+    public void UpdateAddress(string street, string number, string neighborhood, string city, string state, string zipCode, string? complement = null, double? latitude = null, double? longitude = null, string? label = null)
     {
+        Label = label;
         Street = street;
         Number = number;
         Neighborhood = neighborhood;
