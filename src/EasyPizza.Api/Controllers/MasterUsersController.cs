@@ -32,7 +32,7 @@ public class MasterUsersController : ControllerBase
     [Authorize(Policy = MasterPermissions.ViewMasterTeam)]
     public async Task<IActionResult> GetAll()
     {
-        var users = await _userManager.Users.ToListAsync();
+        var users = await _userManager.Users.OrderBy(u => u.Name).ToListAsync();
         var result = new List<object>();
 
         foreach (var user in users)

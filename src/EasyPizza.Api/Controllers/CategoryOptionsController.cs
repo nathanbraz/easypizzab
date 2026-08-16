@@ -1,0 +1,230 @@
+using EasyPizza.Domain.Entities;
+using EasyPizza.Infrastructure.Data;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+
+namespace EasyPizza.Api.Controllers;
+
+// CRUD admin dos grupos/itens de opção compartilhados por categoria (Tamanho, Borda) e do preço
+// que cada produto define para cada item. Ver CategoryOptionGroup/CategoryOptionItem/
+// ProductCategoryOptionPrice para o racional completo dessa modelagem.
+[ApiController]
+[Route("api/[controller]")]
+public class CategoryOptionsController : ControllerBase
+{
+    private readonly EasyPizzaDbContext _context;
+
+    public CategoryOptionsController(EasyPizzaDbContext context)
+    {
+        _context = context;
+    }
+
+    // Grupos (e itens) definidos para a categoria, independente de produto.
+    [HttpGet("{tenantSlug}/category/{categoryId:guid}")]
+    public async Task<IActionResult> GetByCategory(string tenantSlug, Guid categoryId)
+    {
+        var groups = await _context.CategoryOptionGroups
+            .Where(g => g.CategoryId == categoryId)
+            .Include(g => g.Items.OrderBy(i => i.DisplayOrder))
+            .OrderBy(g => g.DisplayOrder)
+            .ToListAsync();
+
+        return Ok(groups);
+    }
+
+    [Authorize(Policy = "RequireTenant")]
+    [HttpPost("{tenantSlug}/category/{categoryId:guid}")]
+    public async Task<IActionResult> CreateGroup(string tenantSlug, Guid categoryId, [FromBody] CreateCategoryOptionGroupRequest request)
+    {
+        var group = new CategoryOptionGroup(categoryId, request.Name, request.MinChoices, request.MaxChoices, request.DisplayOrder, request.HasUniformPricing);
+
+        _context.CategoryOptionGroups.Add(group);
+        await _context.SaveChangesAsync();
+        return Ok(group);
+    }
+
+    [Authorize(Policy = "RequireTenant")]
+    [HttpPut("{tenantSlug}/group/{id:guid}")]
+    public async Task<IActionResult> UpdateGroup(string tenantSlug, Guid id, [FromBody] UpdateCategoryOptionGroupRequest request)
+    {
+        var group = await _context.CategoryOptionGroups.FindAsync(id);
+        if (group == null) return NotFound();
+
+        group.UpdateDetails(request.Name, request.MinChoices, request.MaxChoices, request.DisplayOrder, request.HasUniformPricing);
+        await _context.SaveChangesAsync();
+        return Ok(group);
+    }
+
+    [Authorize(Policy = "RequireTenant")]
+    [HttpDelete("{tenantSlug}/group/{id:guid}")]
+    public async Task<IActionResult> DeleteGroup(string tenantSlug, Guid id)
+    {
+        var group = await _context.CategoryOptionGroups.FindAsync(id);
+        if (group == null) return NotFound();
+
+        // Cascata (config. no DbContext) remove Items e, por tabela, os ProductCategoryOptionPrices ligados.
+        _context.CategoryOptionGroups.Remove(group);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [Authorize(Policy = "RequireTenant")]
+    [HttpPost("{tenantSlug}/group/{groupId:guid}/items")]
+    public async Task<IActionResult> CreateItem(string tenantSlug, Guid groupId, [FromBody] CreateCategoryOptionItemRequest request)
+    {
+        var item = new CategoryOptionItem(groupId, request.Name, request.DisplayOrder, request.UniformPrice);
+
+        _context.CategoryOptionItems.Add(item);
+        await _context.SaveChangesAsync();
+        return Ok(item);
+    }
+
+    [Authorize(Policy = "RequireTenant")]
+    [HttpPut("{tenantSlug}/item/{id:guid}")]
+    public async Task<IActionResult> UpdateItem(string tenantSlug, Guid id, [FromBody] UpdateCategoryOptionItemRequest request)
+    {
+        var item = await _context.CategoryOptionItems.FindAsync(id);
+        if (item == null) return NotFound();
+
+        item.UpdateDetails(request.Name, request.DisplayOrder, request.UniformPrice);
+        await _context.SaveChangesAsync();
+        return Ok(item);
+    }
+
+    [Authorize(Policy = "RequireTenant")]
+    [HttpDelete("{tenantSlug}/item/{id:guid}")]
+    public async Task<IActionResult> DeleteItem(string tenantSlug, Guid id)
+    {
+        var item = await _context.CategoryOptionItems.FindAsync(id);
+        if (item == null) return NotFound();
+
+        // Cascata remove também os ProductCategoryOptionPrices desse item em qualquer produto.
+        _context.CategoryOptionItems.Remove(item);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // Visão administrativa: todos os grupos/itens da categoria, indicando quais esse produto
+    // específico já oferece (e a que preço) — para a tela de admin marcar/desmarcar cada opção.
+    [Authorize(Policy = "RequireTenant")]
+    [HttpGet("{tenantSlug}/category/{categoryId:guid}/product/{productId:guid}")]
+    public async Task<IActionResult> GetForProduct(string tenantSlug, Guid categoryId, Guid productId)
+    {
+        var groups = await _context.CategoryOptionGroups
+            .Where(g => g.CategoryId == categoryId)
+            .Include(g => g.Items.OrderBy(i => i.DisplayOrder))
+            .OrderBy(g => g.DisplayOrder)
+            .ToListAsync();
+
+        var productPrices = await _context.ProductCategoryOptionPrices
+            .Where(p => p.ProductId == productId)
+            .ToDictionaryAsync(p => p.CategoryOptionItemId);
+
+        var result = groups.Select(g => new CategoryOptionAdminGroupDto
+        {
+            Id = g.Id,
+            Name = g.Name,
+            MinChoices = g.MinChoices,
+            MaxChoices = g.MaxChoices,
+            DisplayOrder = g.DisplayOrder,
+            HasUniformPricing = g.HasUniformPricing,
+            Items = g.Items.Select(i =>
+            {
+                productPrices.TryGetValue(i.Id, out var row);
+                return new CategoryOptionAdminItemDto
+                {
+                    Id = i.Id,
+                    Name = i.Name,
+                    DisplayOrder = i.DisplayOrder,
+                    UniformPrice = i.UniformPrice,
+                    IsOffered = row?.IsOffered ?? false,
+                    // Preço efetivo: se o grupo é uniforme, sempre o preço do item (mesmo antes do
+                    // produto oferecer — útil pra pré-visualizar quanto vai custar ao marcar). Senão,
+                    // é o último preço configurado por este produto — mesmo que esteja desativado no
+                    // momento, pra reativar não perder o valor.
+                    AdditionalPrice = g.HasUniformPricing ? i.UniformPrice : row?.AdditionalPrice
+                };
+            }).ToList()
+        });
+
+        return Ok(result);
+    }
+
+    // Define (cria ou atualiza) o preço desse produto para um item — é isso que faz o produto
+    // "oferecer" a opção. Sem essa linha, o item simplesmente não aparece pra esse produto.
+    [Authorize(Policy = "RequireTenant")]
+    [HttpPut("{tenantSlug}/product/{productId:guid}/item/{itemId:guid}")]
+    public async Task<IActionResult> SetProductPrice(string tenantSlug, Guid productId, Guid itemId, [FromBody] SetProductOptionPriceRequest request)
+    {
+        var item = await _context.CategoryOptionItems.Include(i => i.Group).FirstOrDefaultAsync(i => i.Id == itemId);
+        if (item == null) return NotFound();
+
+        // Em grupo de preço uniforme (ex: Borda), quem manda é sempre CategoryOptionItem.UniformPrice
+        // — não guardamos um valor solto aqui (ficaria morto, nunca lido). O valor mandado pelo
+        // cliente é ignorado nesse caso.
+        decimal? price = item.Group!.HasUniformPricing ? null : request.AdditionalPrice;
+
+        var existing = await _context.ProductCategoryOptionPrices
+            .FirstOrDefaultAsync(p => p.ProductId == productId && p.CategoryOptionItemId == itemId);
+
+        if (existing != null)
+        {
+            existing.UpdatePrice(price);
+        }
+        else
+        {
+            existing = new ProductCategoryOptionPrice(productId, itemId, price);
+            _context.ProductCategoryOptionPrices.Add(existing);
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(existing);
+    }
+
+    // Remove a oferta dessa opção pelo produto (ex: "essa pizza não vem em P"). Não apaga a linha —
+    // só marca IsOffered=false, guardando o preço configurado caso o lojista marque de novo depois
+    // (sem isso, reativar "esquecia" o preço e o admin tinha que digitar de novo toda vez).
+    [Authorize(Policy = "RequireTenant")]
+    [HttpDelete("{tenantSlug}/product/{productId:guid}/item/{itemId:guid}")]
+    public async Task<IActionResult> RemoveProductPrice(string tenantSlug, Guid productId, Guid itemId)
+    {
+        var existing = await _context.ProductCategoryOptionPrices
+            .FirstOrDefaultAsync(p => p.ProductId == productId && p.CategoryOptionItemId == itemId);
+
+        if (existing == null) return NotFound();
+
+        existing.SetOffered(false);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+}
+
+public record CreateCategoryOptionGroupRequest(string Name, int MinChoices, int MaxChoices, int DisplayOrder, bool HasUniformPricing = false);
+public record UpdateCategoryOptionGroupRequest(string Name, int MinChoices, int MaxChoices, int DisplayOrder, bool HasUniformPricing = false);
+
+public record CreateCategoryOptionItemRequest(string Name, int DisplayOrder, decimal? UniformPrice = null);
+public record UpdateCategoryOptionItemRequest(string Name, int DisplayOrder, decimal? UniformPrice = null);
+
+public record SetProductOptionPriceRequest(decimal AdditionalPrice);
+
+public class CategoryOptionAdminGroupDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int MinChoices { get; set; }
+    public int MaxChoices { get; set; }
+    public int DisplayOrder { get; set; }
+    public bool HasUniformPricing { get; set; }
+    public List<CategoryOptionAdminItemDto> Items { get; set; } = new();
+}
+
+public class CategoryOptionAdminItemDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public decimal? UniformPrice { get; set; }
+    public bool IsOffered { get; set; }
+    public decimal? AdditionalPrice { get; set; }
+}

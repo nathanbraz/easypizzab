@@ -1,4 +1,5 @@
 using EasyPizza.Application.Interfaces.Repositories;
+using EasyPizza.Application.Interfaces.Services;
 using EasyPizza.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -10,16 +11,22 @@ namespace EasyPizza.Api.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IRepository<Product> _repository;
+    private readonly ICatalogService _catalogService;
 
-    public ProductsController(IRepository<Product> repository)
+    public ProductsController(IRepository<Product> repository, ICatalogService catalogService)
     {
         _repository = repository;
+        _catalogService = catalogService;
     }
 
     [HttpGet("{tenantSlug}")]
     public async Task<IActionResult> GetAll(string tenantSlug)
     {
-        var products = await _repository.GetAllAsync();
+        // Traz todos os produtos (inclusive indisponíveis) já com as opções mescladas (próprias +
+        // compartilhadas da categoria) — a listagem do admin usa isso pra mostrar o preço real
+        // (ex: "A partir de R$35") em vez do preço bruto, que fica R$0 quando o produto usa Tamanho.
+        // Já vem ordenado por nome (ver CatalogRepository.GetAllProductsWithOptionsAsync).
+        var products = await _catalogService.GetAllProductsWithOptionsAsync();
         return Ok(products);
     }
 

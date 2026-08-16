@@ -39,7 +39,7 @@ public class TenantRolesController : ControllerBase
     [Authorize(Policy = Permissions.ViewRoles)]
     public async Task<IActionResult> GetAll(string tenantSlug)
     {
-        var roles = await _roleManager.Roles.ToListAsync();
+        var roles = await _roleManager.Roles.OrderBy(r => r.Name).ToListAsync();
         var result = new List<object>();
 
         foreach (var role in roles)

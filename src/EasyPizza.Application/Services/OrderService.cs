@@ -15,8 +15,48 @@ public class OrderService(
 {
     public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<OrderItemInput> items, string? couponCode = null, decimal? changeFor = null)
     {
-        var subTotal = items.Sum(i => i.Quantity * i.UnitPrice);
-        
+        // --- 0. Recalcular preços a partir do catálogo ---
+        // Nunca confiamos em UnitPrice/Price vindos do cliente: o preço final é sempre
+        // recomputado aqui a partir do produto e das opções (próprias e compartilhadas da
+        // categoria) que ele realmente oferece hoje. Isso evita que um payload manipulado
+        // finalize um pedido com preço menor que o real.
+        var pricedItems = new List<PricedOrderItem>();
+        decimal subTotal = 0;
+
+        foreach (var item in items)
+        {
+            var product = await catalogRepository.GetProductByIdAsync(item.ProductId)
+                ?? throw new InvalidOperationException("Produto não encontrado.");
+
+            if (!product.IsAvailable)
+                throw new InvalidOperationException($"O produto \"{product.Name}\" não está disponível no momento.");
+
+            var validOptions = (await catalogRepository.GetProductOptionsAsync(item.ProductId))
+                .SelectMany(g => g.Options)
+                .ToDictionary(o => o.Id);
+
+            var recalculatedAddons = new List<OrderItemAddonInput>();
+            decimal addonsTotal = 0;
+
+            if (item.Addons != null)
+            {
+                foreach (var addon in item.Addons)
+                {
+                    if (addon.ProductOptionItemId == null || !validOptions.TryGetValue(addon.ProductOptionItemId.Value, out var catalogOption))
+                        throw new InvalidOperationException($"Opção inválida para o produto \"{product.Name}\".");
+
+                    var quantity = addon.Quantity < 1 ? 1 : addon.Quantity;
+                    recalculatedAddons.Add(addon with { AddonName = catalogOption.Name, Price = catalogOption.AdditionalPrice, Quantity = quantity });
+                    addonsTotal += catalogOption.AdditionalPrice * quantity;
+                }
+            }
+
+            var unitPrice = product.Price + addonsTotal;
+            subTotal += unitPrice * item.Quantity;
+
+            pricedItems.Add(new PricedOrderItem(product.Id, product.Name, item.Quantity, unitPrice, item.Notes, recalculatedAddons));
+        }
+
         // --- 1. Validação de Configurações ---
         var settings = await settingsRepository.GetSettingsAsync();
         
@@ -80,26 +120,21 @@ public class OrderService(
 
         var order = new Order(customerId, customerAddressId, type, paymentTypeId, subTotal, deliveryFee, discountAmount, couponId, couponCode, changeFor);
 
-        foreach (var item in items)
+        foreach (var item in pricedItems)
         {
-            var product = await catalogRepository.GetProductByIdAsync(item.ProductId);
-            string productName = product?.Name ?? "Produto Desconhecido";
+            var orderItem = new OrderItem(order.Id, item.ProductId, item.ProductName, item.Quantity, item.UnitPrice, item.Notes);
 
-            var orderItem = new OrderItem(order.Id, item.ProductId, productName, item.Quantity, item.UnitPrice, item.Notes);
-
-            // Salva as opções selecionadas pelo cliente (tamanho, borda, adicionais etc.)
-            if (item.Addons != null)
+            // Salva as opções selecionadas pelo cliente (tamanho, borda, adicionais etc.) —
+            // nome e preço já recalculados a partir do catálogo, nunca os do payload original.
+            foreach (var addon in item.Addons)
             {
-                foreach (var addon in item.Addons)
-                {
-                    orderItem.Addons.Add(new OrderItemAddon(
-                        orderItem.Id,
-                        addon.ProductOptionItemId,
-                        addon.AddonName,
-                        addon.Price,
-                        addon.Quantity
-                    ));
-                }
+                orderItem.Addons.Add(new OrderItemAddon(
+                    orderItem.Id,
+                    addon.ProductOptionItemId,
+                    addon.AddonName,
+                    addon.Price,
+                    addon.Quantity
+                ));
             }
 
             order.Items.Add(orderItem);
@@ -173,4 +208,7 @@ public class OrderService(
             // Falhas de notificação de WhatsApp não devem impedir o fluxo do pedido
         }
     }
+
+    // Item de pedido já com preço e opções recalculados a partir do catálogo (nunca do payload do cliente).
+    private record PricedOrderItem(Guid ProductId, string ProductName, int Quantity, decimal UnitPrice, string? Notes, List<OrderItemAddonInput> Addons);
 }

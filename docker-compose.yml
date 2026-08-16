@@ -34,9 +34,14 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
     env_file:
       - .env
+    volumes:
+      # Sem isso, fotos enviadas pelo admin (POST /uploads) ficam só na camada gravável do
+      # container e somem a cada rebuild/recriação da imagem (docker compose build/up).
+      - uploads_data:/app/wwwroot/uploads
     depends_on:
       - db
     restart: unless-stopped
 
 volumes:
   postgres_data:
+  uploads_data:

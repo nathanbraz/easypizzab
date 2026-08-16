@@ -11,8 +11,13 @@ public class CourierRepository : Repository<Courier>, ICourierRepository
     {
     }
 
+    public override async Task<IEnumerable<Courier>> GetAllAsync()
+    {
+        return await _dbSet.OrderBy(c => c.Name).ToListAsync();
+    }
+
     public async Task<IEnumerable<Courier>> GetActiveCouriersAsync()
     {
-        return await _dbSet.Where(c => c.IsActive).ToListAsync();
+        return await _dbSet.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
     }
 }

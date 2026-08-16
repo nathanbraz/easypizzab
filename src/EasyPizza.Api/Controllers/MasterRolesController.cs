@@ -47,7 +47,7 @@ public class MasterRolesController : ControllerBase
     [Authorize(Policy = MasterPermissions.ViewMasterRoles)]
     public async Task<IActionResult> GetAll()
     {
-        var roles = await _roleManager.Roles.ToListAsync();
+        var roles = await _roleManager.Roles.OrderBy(r => r.Name).ToListAsync();
         var result = new List<object>();
 
         foreach (var role in roles)

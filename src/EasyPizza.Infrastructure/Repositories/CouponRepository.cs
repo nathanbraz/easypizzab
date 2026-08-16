@@ -11,6 +11,11 @@ public class CouponRepository : Repository<Coupon>, ICouponRepository
     {
     }
 
+    public override async Task<IEnumerable<Coupon>> GetAllAsync()
+    {
+        return await _dbSet.OrderByDescending(c => c.CreatedAt).ToListAsync();
+    }
+
     public async Task<Coupon?> GetByCodeAsync(string code)
     {
         return await _dbSet.FirstOrDefaultAsync(c => c.Code == code.ToUpperInvariant());

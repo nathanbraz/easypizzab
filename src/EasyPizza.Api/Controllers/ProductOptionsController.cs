@@ -1,3 +1,4 @@
+using EasyPizza.Application.Interfaces.Services;
 using EasyPizza.Domain.Entities;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -11,21 +12,20 @@ namespace EasyPizza.Api.Controllers;
 public class ProductOptionsController : ControllerBase
 {
     private readonly EasyPizzaDbContext _context;
+    private readonly ICatalogService _catalogService;
 
-    public ProductOptionsController(EasyPizzaDbContext context)
+    public ProductOptionsController(EasyPizzaDbContext context, ICatalogService catalogService)
     {
         _context = context;
+        _catalogService = catalogService;
     }
 
+    // Combina os grupos próprios do produto (Adicionais extras) com os grupos compartilhados
+    // da categoria (Tamanho, Borda) — mesmo formato de resposta de sempre, o front não percebe.
     [HttpGet("{tenantSlug}/product/{productId:guid}")]
     public async Task<IActionResult> GetByProduct(string tenantSlug, Guid productId)
     {
-        var groups = await _context.ProductOptionGroups
-            .Include(g => g.Options.OrderBy(o => o.DisplayOrder))
-            .Where(g => g.ProductId == productId)
-            .OrderBy(g => g.DisplayOrder)
-            .ToListAsync();
-            
+        var groups = await _catalogService.GetProductOptionsAsync(productId);
         return Ok(groups);
     }
 

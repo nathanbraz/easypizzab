@@ -28,7 +28,7 @@ public class TenantUsersController : ControllerBase
     [Authorize(Policy = Permissions.ViewTeam)]
     public async Task<IActionResult> GetAll(string tenantSlug)
     {
-        var users = await _userManager.Users.ToListAsync();
+        var users = await _userManager.Users.OrderBy(u => u.Name).ToListAsync();
         var result = new List<object>();
 
         foreach (var user in users)

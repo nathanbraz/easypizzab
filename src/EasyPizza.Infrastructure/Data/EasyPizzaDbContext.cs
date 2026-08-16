@@ -30,7 +30,10 @@ public class EasyPizzaDbContext : IdentityDbContext<ApplicationUser, Application
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductOptionGroup> ProductOptionGroups { get; set; }
     public DbSet<ProductOptionItem> ProductOptionItems { get; set; }
-    
+    public DbSet<CategoryOptionGroup> CategoryOptionGroups { get; set; }
+    public DbSet<CategoryOptionItem> CategoryOptionItems { get; set; }
+    public DbSet<ProductCategoryOptionPrice> ProductCategoryOptionPrices { get; set; }
+
     
     // Clientes
     public DbSet<Customer> Customers { get; set; }
@@ -123,6 +126,7 @@ public class EasyPizzaDbContext : IdentityDbContext<ApplicationUser, Application
         {
             entity.HasKey(e => e.Id);
             entity.HasMany(e => e.Products).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
+            entity.HasMany(e => e.OptionGroups).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -130,6 +134,7 @@ public class EasyPizzaDbContext : IdentityDbContext<ApplicationUser, Application
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
             entity.HasMany(e => e.OptionGroups).WithOne(e => e.Product).HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.CategoryOptionPrices).WithOne(e => e.Product).HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ProductOptionGroup>(entity =>
@@ -142,6 +147,29 @@ public class EasyPizzaDbContext : IdentityDbContext<ApplicationUser, Application
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.AdditionalPrice).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<CategoryOptionGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasMany(e => e.Items).WithOne(e => e.Group).HasForeignKey(e => e.GroupId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CategoryOptionItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UniformPrice).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<ProductCategoryOptionPrice>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AdditionalPrice).HasColumnType("decimal(18,2)");
+            entity.HasIndex(e => new { e.ProductId, e.CategoryOptionItemId }).IsUnique();
+            entity.HasOne(e => e.CategoryOptionItem)
+                .WithMany()
+                .HasForeignKey(e => e.CategoryOptionItemId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
 

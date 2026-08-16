@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 {
     [DbContext(typeof(EasyPizzaDbContext))]
-    partial class EasyPizzaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815225328_AddSharedCategoryOptions")]
+    partial class AddSharedCategoryOptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,7 +56,7 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            ConcurrencyStamp = "533dbd27-52d0-48b4-bc40-1df8ddf01639",
+                            ConcurrencyStamp = "4d92e10c-a369-4ee1-8975-bcaaf364ab4b",
                             Name = "Administrador",
                             NormalizedName = "ADMINISTRADOR"
                         });
@@ -149,9 +152,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("HasUniformPricing")
-                        .HasColumnType("boolean");
-
                     b.Property<int>("MaxChoices")
                         .HasColumnType("integer");
 
@@ -190,9 +190,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<decimal?>("UniformPrice")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -674,7 +671,7 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal?>("AdditionalPrice")
+                    b.Property<decimal>("AdditionalPrice")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("CategoryOptionItemId")
@@ -682,9 +679,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsOffered")
-                        .HasColumnType("boolean");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");

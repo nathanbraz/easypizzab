@@ -13,8 +13,12 @@ public class Product : Entity
     public bool ShowInCrossSell { get; private set; }
 
     public ProductCategory? Category { get; private set; }
-    
+
     public ICollection<ProductOptionGroup> OptionGroups { get; private set; } = new List<ProductOptionGroup>();
+
+    // Preço deste produto pra cada item de opção compartilhada da categoria (Tamanho, Borda) que
+    // ele realmente oferece. Sem linha aqui pra um item = esse produto não oferece aquela opção.
+    public ICollection<ProductCategoryOptionPrice> CategoryOptionPrices { get; private set; } = new List<ProductCategoryOptionPrice>();
 
     public Product(Guid categoryId, string name, string description, decimal price)
     {
