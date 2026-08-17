@@ -27,6 +27,9 @@ env:
     - ConnectionStrings__MasterConnection
     - Jwt__Key
     - MasterDefault__Password
+    # Template usado ao cadastrar uma loja nova (contém a senha do Postgres embutida,
+    # por isso é secret e não clear) — ver TenantsController.Create.
+    - Tenant__DefaultConnectionStringTemplate
 
 builder:
   arch: amd64

@@ -15,10 +15,12 @@ namespace EasyPizza.Api.Controllers;
 public class TenantsController : ControllerBase
 {
     private readonly MasterDbContext _masterDb;
+    private readonly IConfiguration _configuration;
 
-    public TenantsController(MasterDbContext masterDb)
+    public TenantsController(MasterDbContext masterDb, IConfiguration configuration)
     {
         _masterDb = masterDb;
+        _configuration = configuration;
     }
 
     [Authorize(Policy = MasterPermissions.ViewTenants)]
@@ -44,9 +46,16 @@ public class TenantsController : ControllerBase
         if (existing != null)
             return BadRequest($"Já existe uma empresa cadastrada com o subdomínio/identificador '{slug}'.");
 
+        // Template configurável por ambiente (env var Tenant__DefaultConnectionStringTemplate em
+        // produção/homologação; em dev local cai no fallback abaixo, que aponta pro Postgres do
+        // docker-compose) — assim cadastrar uma loja nova nunca exige preencher o campo de
+        // ConnectionString manualmente. Ele continua existindo só como override avançado.
+        var connectionStringTemplate = _configuration["Tenant:DefaultConnectionStringTemplate"]
+            ?? "Host=db;Port=5432;Database=easypizza_{slug};Username=postgres;Password=1234";
+
         var connectionString = !string.IsNullOrWhiteSpace(request.ConnectionString)
             ? request.ConnectionString
-            : $"Host=db;Port=5432;Database=easypizza_{slug};Username=postgres;Password=1234";
+            : connectionStringTemplate.Replace("{slug}", slug);
 
         var tenant = new Tenant(request.Name, slug, connectionString);
         _masterDb.Tenants.Add(tenant);
