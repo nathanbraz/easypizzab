@@ -77,9 +77,10 @@ public class Order : IntEntity
         ChangeFor = changeFor;
     }
 
-    public void SetPixCode(string copyPasteCode)
+    public void SetPixCode(string copyPasteCode, string gatewayOrderId)
     {
         PixCopyPasteCode = copyPasteCode;
+        PaymentExternalId = gatewayOrderId;
         SetUpdatedAt();
     }
 

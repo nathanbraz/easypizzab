@@ -182,6 +182,7 @@ builder.Services.AddScoped<IStoreSettingsRepository, StoreSettingsRepository>();
 builder.Services.AddScoped<IPaymentTypeRepository, PaymentTypeRepository>();
 builder.Services.AddHttpClient<IWhatsappSender, EvolutionApiWhatsappSender>();
 builder.Services.AddScoped<IWhatsappBotService, WhatsappBotService>();
+builder.Services.AddHttpClient<IPaymentGatewayService, MercadoPagoService>();
 
 var app = builder.Build();
 

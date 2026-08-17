@@ -1,6 +1,7 @@
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Application.Interfaces.Services;
 using EasyPizza.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace EasyPizza.Application.Services;
 
@@ -11,7 +12,9 @@ public class OrderService(
     ICouponRepository couponRepository,
     ICustomerRepository customerRepository,
     IWhatsappSender whatsappSender,
-    ICatalogRepository catalogRepository) : IOrderService
+    ICatalogRepository catalogRepository,
+    IPaymentGatewayService paymentGatewayService,
+    ILogger<OrderService> logger) : IOrderService
 {
     public async Task<Order> CreateOrderAsync(Guid customerId, Guid? customerAddressId, OrderType type, Guid paymentTypeId, List<OrderItemInput> items, string? couponCode = null, decimal? changeFor = null)
     {
@@ -143,9 +146,34 @@ public class OrderService(
         await repository.AddAsync(order);
         await repository.SaveChangesAsync();
 
+        if (paymentType.IsOnlinePayment)
+            await GeneratePixChargeAsync(order);
+
         await NotifyCustomerStatusAsync(order);
 
         return order;
+    }
+
+    // Gera a cobrança Pix pro pedido recém-criado, se a forma de pagamento escolhida for online.
+    // Uma falha aqui (gateway não configurado, API do Mercado Pago fora do ar, etc.) não pode
+    // derrubar a criação do pedido em si — o pedido continua válido, só fica sem QR code, e o
+    // lojista precisa dar atenção manual a ele (mesma postura já usada para falha de notificação).
+    private async Task GeneratePixChargeAsync(Order order)
+    {
+        try
+        {
+            var customer = await customerRepository.GetByIdAsync(order.CustomerId);
+            if (customer == null || string.IsNullOrWhiteSpace(customer.PhoneNumber))
+                return;
+
+            var charge = await paymentGatewayService.CreatePixChargeAsync(order.Id, order.TotalAmount, customer.PhoneNumber);
+            order.SetPixCode(charge.CopyPasteCode, charge.GatewayOrderId);
+            await repository.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Falha ao gerar cobrança Pix para o pedido #{OrderId}", order.Id);
+        }
     }
 
     public async Task<IEnumerable<Order>> GetOrdersAsync()
