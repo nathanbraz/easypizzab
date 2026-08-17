@@ -225,7 +225,7 @@ public class EasyPizzaDbContext : IdentityDbContext<ApplicationUser, Application
         );
 
         // --- Seed do Cargo "Owner" e suas Permissões ---
-        var ownerRoleId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var ownerRoleId = Guid.Parse("866de267-9cb3-4f41-8b6d-b814038798b5");
         
         modelBuilder.Entity<ApplicationRole>().HasData(
             new ApplicationRole 
