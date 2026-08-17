@@ -1,0 +1,57 @@
+# Ambiente de homologação do EasyPizza (backend) — hospedado na mesma VPS do
+# nathanbraz.dev, atendendo todos os tenants em https://api.nathanbraz.dev
+# (o tenant de cada requisição é resolvido pelo subdomínio do FRONTEND que a chamou,
+# ver HttpTenantProvider — a API em si é uma URL única, compartilhada).
+service: easypizzab-homolog
+
+# Mesma conta do GitHub Container Registry já usada pelo nathanbraz.dev.
+image: nathanbraz/easypizzab
+
+servers:
+  web:
+    - 179.198.123.31
+
+registry:
+  server: ghcr.io
+  username: nathanbraz
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    ASPNETCORE_ENVIRONMENT: Production
+    # Usado pelo bot de WhatsApp pra montar o magic link enviado ao cliente — precisa
+    # apontar pro domínio público de cada loja, não pro localhost de dev.
+    Frontend__BaseUrlTemplate: "https://{slug}.nathanbraz.dev"
+  secret:
+    - ConnectionStrings__MasterConnection
+    - Jwt__Key
+    - MasterDefault__Password
+
+builder:
+  arch: amd64
+
+proxy:
+  ssl: true
+  host: api.nathanbraz.dev
+  # O Dockerfile expõe 8080 (padrão do ASP.NET), não 80 (padrão do Kamal).
+  app_port: 8080
+  healthcheck:
+    path: /api/health
+
+# Postgres dedicado deste ambiente de homologação — instância nova na VPS, não
+# reaproveita o Postgres local de dev. Só escuta em 127.0.0.1 (não fica exposto
+# publicamente); o backend alcança pelo nome do container que o Kamal cria
+# automaticamente: "easypizzab-homolog-postgres" (padrão #{service}-#{accessory}).
+accessories:
+  postgres:
+    image: postgres:16
+    host: 179.198.123.31
+    port: "127.0.0.1:5432:5432"
+    env:
+      clear:
+        POSTGRES_USER: postgres
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      - postgres-data:/var/lib/postgresql/data

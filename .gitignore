@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# kamal
+.kamal/secrets
+
 # User-specific files
 *.rsuser
 *.suo

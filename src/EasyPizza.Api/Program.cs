@@ -222,11 +222,15 @@ app.Use(async (context, next) =>
 {
     // Ignora rotas nativas que não precisam de banco de dados do lojista
     if (context.Request.Method == "OPTIONS" ||
-        context.Request.Path.StartsWithSegments("/openapi") || 
+        context.Request.Path.StartsWithSegments("/openapi") ||
         context.Request.Path.StartsWithSegments("/swagger") ||
         context.Request.Path.StartsWithSegments("/api/master") ||
         context.Request.Path.StartsWithSegments("/api/auth/login") ||
-        context.Request.Path.StartsWithSegments("/api/uploads"))
+        context.Request.Path.StartsWithSegments("/api/uploads") ||
+        // Consultado pelo Kamal Proxy (TLS on-demand) antes de qualquer tenant existir
+        // pro subdomínio sendo verificado — não pode depender de tenant já resolvido.
+        context.Request.Path.StartsWithSegments("/api/tenant-check") ||
+        context.Request.Path.StartsWithSegments("/api/health"))
     {
         await next(context);
         return;
