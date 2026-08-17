@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 {
     [DbContext(typeof(EasyPizzaDbContext))]
-    partial class EasyPizzaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260816224919_AddMercadoPagoAccessTokenToStoreSettings")]
+    partial class AddMercadoPagoAccessTokenToStoreSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,7 +56,7 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            ConcurrencyStamp = "dd1e96a4-2717-4c6c-805d-d3730a943477",
+                            ConcurrencyStamp = "01d7636d-b0d9-4d3b-9b12-202718cb9666",
                             Name = "Administrador",
                             NormalizedName = "ADMINISTRADOR"
                         });
@@ -815,20 +818,14 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                     b.Property<string>("LogoUrl")
                         .HasColumnType("text");
 
+                    b.Property<string>("MercadoPagoAccessToken")
+                        .HasColumnType("text");
+
                     b.Property<string>("MessageOfTheDay")
                         .HasColumnType("text");
 
                     b.Property<decimal>("MinimumOrderAmount")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("PaymentGatewayAccessToken")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PaymentGatewayProvider")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PaymentGatewayWebhookSecret")
-                        .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

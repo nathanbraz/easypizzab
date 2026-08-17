@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using EasyPizza.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
 {
     [DbContext(typeof(EasyPizzaDbContext))]
-    partial class EasyPizzaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260816225851_RenameMercadoPagoToPaymentGateway")]
+    partial class RenameMercadoPagoToPaymentGateway
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,7 +56,7 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            ConcurrencyStamp = "dd1e96a4-2717-4c6c-805d-d3730a943477",
+                            ConcurrencyStamp = "083e5638-8147-417e-916e-ec299799d599",
                             Name = "Administrador",
                             NormalizedName = "ADMINISTRADOR"
                         });
@@ -825,9 +828,6 @@ namespace EasyPizza.Infrastructure.Data.Migrations.Tenant
                         .HasColumnType("text");
 
                     b.Property<string>("PaymentGatewayProvider")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PaymentGatewayWebhookSecret")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")

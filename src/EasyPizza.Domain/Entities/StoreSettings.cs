@@ -15,6 +15,10 @@ public class StoreSettings : Entity
     public string? MessageOfTheDay { get; private set; }
     public string? ActiveGlobalCouponCode { get; private set; }
 
+    // Identidade visual do cardápio do cliente (topo da página)
+    public string? LogoUrl { get; private set; }
+    public string? BannerUrl { get; private set; }
+
     // Configurações do Bot e Webhook do WhatsApp
     public bool WhatsappBotEnabled { get; private set; }
     public string? WhatsappServerUrl { get; private set; }
@@ -22,6 +26,19 @@ public class StoreSettings : Entity
     public string? WhatsappApiKey { get; private set; }
     public string? WhatsappSupportPhone { get; private set; }
     public string? WhatsappGreetingMessage { get; private set; }
+
+    // Gateway de pagamento usado pra gerar cobranças online (Pix, cartão, etc.) desta loja.
+    // Nomeado de forma genérica de propósito: hoje só existe integração com o Mercado Pago, mas o
+    // campo já fica pronto pra outro gateway no futuro sem precisar renomear coluna/migration.
+    // A credencial nunca deve ser exposta em texto puro por nenhum endpoint público — só o backend
+    // a lê, pra chamar a API do gateway. Ver SettingsController para o tratamento de leitura/escrita.
+    public string? PaymentGatewayProvider { get; private set; }
+    public string? PaymentGatewayAccessToken { get; private set; }
+
+    // Segredo usado para validar a assinatura HMAC dos webhooks do gateway (garante que a
+    // notificação realmente veio dele, não de alguém forjando uma chamada pro nosso endpoint).
+    // É um segredo diferente do Access Token — gerado separadamente no painel do gateway.
+    public string? PaymentGatewayWebhookSecret { get; private set; }
 
     // Construtor vazio para o EF Core
     protected StoreSettings() { }
@@ -42,7 +59,12 @@ public class StoreSettings : Entity
         string? whatsappInstanceName = null,
         string? whatsappApiKey = null,
         string? whatsappSupportPhone = null,
-        string? whatsappGreetingMessage = null)
+        string? whatsappGreetingMessage = null,
+        string? logoUrl = null,
+        string? bannerUrl = null,
+        string? paymentGatewayProvider = null,
+        string? paymentGatewayAccessToken = null,
+        string? paymentGatewayWebhookSecret = null)
     {
         IsStoreOpen = isStoreOpen;
         DeliveryFee = deliveryFee;
@@ -60,6 +82,11 @@ public class StoreSettings : Entity
         WhatsappApiKey = whatsappApiKey;
         WhatsappSupportPhone = whatsappSupportPhone;
         WhatsappGreetingMessage = whatsappGreetingMessage;
+        LogoUrl = logoUrl;
+        BannerUrl = bannerUrl;
+        PaymentGatewayProvider = paymentGatewayProvider;
+        PaymentGatewayAccessToken = paymentGatewayAccessToken;
+        PaymentGatewayWebhookSecret = paymentGatewayWebhookSecret;
     }
 
     public void Update(
@@ -78,7 +105,12 @@ public class StoreSettings : Entity
         string? whatsappInstanceName = null,
         string? whatsappApiKey = null,
         string? whatsappSupportPhone = null,
-        string? whatsappGreetingMessage = null)
+        string? whatsappGreetingMessage = null,
+        string? logoUrl = null,
+        string? bannerUrl = null,
+        string? paymentGatewayProvider = null,
+        string? paymentGatewayAccessToken = null,
+        string? paymentGatewayWebhookSecret = null)
     {
         IsStoreOpen = isStoreOpen;
         DeliveryFee = deliveryFee;
@@ -96,6 +128,11 @@ public class StoreSettings : Entity
         WhatsappApiKey = whatsappApiKey;
         WhatsappSupportPhone = whatsappSupportPhone;
         WhatsappGreetingMessage = whatsappGreetingMessage;
+        LogoUrl = logoUrl;
+        BannerUrl = bannerUrl;
+        PaymentGatewayProvider = paymentGatewayProvider;
+        PaymentGatewayAccessToken = paymentGatewayAccessToken;
+        PaymentGatewayWebhookSecret = paymentGatewayWebhookSecret;
         SetUpdatedAt();
     }
 }
