@@ -39,6 +39,15 @@ public class StoreSettings : Entity
     public string? PaymentGatewayProvider { get; private set; }
     public string? PaymentGatewayAccessToken { get; private set; }
 
+    // O Mercado Pago não dá jeito confiável de saber, só pelo Access Token, se é uma
+    // credencial de teste ou de produção (unificaram o prefixo APP_USR- em nov/2025 pros
+    // dois). Isso importa porque sandbox e produção exigem e-mail sintético de pagador
+    // DIFERENTE (sandbox exige @testuser.com; produção rejeita esse mesmo domínio com erro
+    // "invalid_users_involved", confirmado testando de verdade) — sem essa flag explícita,
+    // não tem como o backend saber qual formato usar. Default true (sandbox) porque é o
+    // estado inicial de qualquer loja nova, antes de configurar credencial de produção.
+    public bool PaymentGatewaySandboxMode { get; private set; } = true;
+
     // Segredo usado para validar a assinatura HMAC dos webhooks do gateway (garante que a
     // notificação realmente veio dele, não de alguém forjando uma chamada pro nosso endpoint).
     // É um segredo diferente do Access Token — gerado separadamente no painel do gateway.
@@ -66,7 +75,8 @@ public class StoreSettings : Entity
         string? bannerUrl = null,
         string? paymentGatewayProvider = null,
         string? paymentGatewayAccessToken = null,
-        string? paymentGatewayWebhookSecret = null)
+        string? paymentGatewayWebhookSecret = null,
+        bool paymentGatewaySandboxMode = true)
     {
         IsStoreOpen = isStoreOpen;
         DeliveryFee = deliveryFee;
@@ -87,6 +97,7 @@ public class StoreSettings : Entity
         PaymentGatewayProvider = paymentGatewayProvider;
         PaymentGatewayAccessToken = paymentGatewayAccessToken;
         PaymentGatewayWebhookSecret = paymentGatewayWebhookSecret;
+        PaymentGatewaySandboxMode = paymentGatewaySandboxMode;
     }
 
     // Só o Master pode definir isso (ver TenantsController) — não passa pelo Update() geral
@@ -115,7 +126,8 @@ public class StoreSettings : Entity
         string? bannerUrl = null,
         string? paymentGatewayProvider = null,
         string? paymentGatewayAccessToken = null,
-        string? paymentGatewayWebhookSecret = null)
+        string? paymentGatewayWebhookSecret = null,
+        bool paymentGatewaySandboxMode = true)
     {
         IsStoreOpen = isStoreOpen;
         DeliveryFee = deliveryFee;
@@ -135,6 +147,7 @@ public class StoreSettings : Entity
         PaymentGatewayProvider = paymentGatewayProvider;
         PaymentGatewayAccessToken = paymentGatewayAccessToken;
         PaymentGatewayWebhookSecret = paymentGatewayWebhookSecret;
+        PaymentGatewaySandboxMode = paymentGatewaySandboxMode;
         SetUpdatedAt();
     }
 }

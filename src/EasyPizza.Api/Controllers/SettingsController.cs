@@ -91,7 +91,8 @@ public class SettingsController : ControllerBase
             request.BannerUrl,
             paymentGatewayProvider,
             paymentGatewayAccessToken,
-            paymentGatewayWebhookSecret
+            paymentGatewayWebhookSecret,
+            request.PaymentGatewaySandboxMode
         );
 
         await _settingsRepository.UpdateAsync(settings);
@@ -130,7 +131,8 @@ public record UpdateSettingsRequest(
     string? LogoUrl = null,
     string? BannerUrl = null,
     string? PaymentGatewayAccessToken = null,
-    string? PaymentGatewayWebhookSecret = null
+    string? PaymentGatewayWebhookSecret = null,
+    bool PaymentGatewaySandboxMode = true
 );
 
 public record TogglePaymentRequest(bool IsActive);
@@ -188,7 +190,8 @@ public record AdminStoreSettingsDto(
     string? WhatsappGreetingMessage,
     string? PaymentGatewayProvider,
     bool HasPaymentGatewayAccessToken,
-    bool HasPaymentGatewayWebhookSecret)
+    bool HasPaymentGatewayWebhookSecret,
+    bool PaymentGatewaySandboxMode)
 {
     public static AdminStoreSettingsDto From(StoreSettings settings) => new(
         settings.IsStoreOpen,
@@ -209,5 +212,6 @@ public record AdminStoreSettingsDto(
         settings.WhatsappGreetingMessage,
         settings.PaymentGatewayProvider,
         !string.IsNullOrWhiteSpace(settings.PaymentGatewayAccessToken),
-        !string.IsNullOrWhiteSpace(settings.PaymentGatewayWebhookSecret));
+        !string.IsNullOrWhiteSpace(settings.PaymentGatewayWebhookSecret),
+        settings.PaymentGatewaySandboxMode);
 }

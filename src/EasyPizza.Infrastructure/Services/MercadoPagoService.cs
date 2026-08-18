@@ -37,14 +37,14 @@ public class MercadoPagoService : IPaymentGatewayService
         // WhatsApp). Um endereço sintético, determinístico a partir do telefone, satisfaz a API
         // sem precisar de um e-mail real — nunca é usado para enviar nada, é só um identificador.
         //
-        // TODO produção: em sandbox a API rejeita qualquer domínio que não seja @testuser.com
-        // (erro "invalid_email_for_sandbox", confirmado testando de verdade contra a API deles).
-        // Não há um jeito confiável de detectar test/produção só pelo formato do token (o Mercado
-        // Pago unificou os prefixos em nov/2025), então isso está fixo em @testuser.com por
-        // enquanto. Antes de ativar produção de verdade, validar se esse domínio ainda funciona
-        // lá ou se precisa virar um domínio próprio (ex.: @easypizza.cliente).
+        // O domínio muda por ambiente: sandbox EXIGE @testuser.com (erro "invalid_email_for_sandbox"
+        // sem ele, confirmado testando). Produção REJEITA esse mesmo domínio (erro
+        // "invalid_users_involved", confirmado testando de verdade contra a API real) — por isso
+        // depende de StoreSettings.PaymentGatewaySandboxMode, já que não dá pra detectar o ambiente
+        // só pelo formato do Access Token (o Mercado Pago unificou os prefixos em nov/2025).
         var cleanPhone = new string(customerPhone.Where(char.IsDigit).ToArray());
-        var payerEmail = $"cliente-{cleanPhone}@testuser.com";
+        var payerEmailDomain = settings.PaymentGatewaySandboxMode ? "testuser.com" : "easypizza.com.br";
+        var payerEmail = $"cliente-{cleanPhone}@{payerEmailDomain}";
 
         // "50.00", nunca "50,00" — a cultura pt-BR usa vírgula como separador decimal, e a API
         // do Mercado Pago só aceita ponto. Usar InvariantCulture explicitamente evita esse bug.
