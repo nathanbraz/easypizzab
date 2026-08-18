@@ -17,6 +17,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using FluentValidation;
 using EasyPizza.Application.Validators.Master;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -196,6 +197,20 @@ using (var scope = app.Services.CreateScope())
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
     await DatabaseSeeder.SeedMasterUserAsync(scope.ServiceProvider, config);
 }
+
+// O Kamal Proxy termina o HTTPS e repassa a requisição pro container em HTTP puro —
+// sem isso, Request.Scheme sempre reporta "http" aqui dentro, mesmo quando o acesso real
+// do cliente foi https. Precisa vir antes de qualquer middleware que dependa do scheme
+// (UseHttpsRedirection, e qualquer controller que monte URL a partir de Request.Scheme/Host).
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+// Por padrão só confia em proxy rodando em loopback — o Kamal Proxy roda em outro container
+// da mesma rede Docker, não em loopback, então sem isso o header seria descartado.
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Configura o pipeline de requisições HTTP.
 if (app.Environment.IsDevelopment())

@@ -37,6 +37,12 @@ env:
 builder:
   arch: amd64
 
+# Sem isso, fotos enviadas pelo admin (POST /uploads) ficam só na camada gravável do
+# container e somem a cada redeploy — mesmo motivo já documentado no docker-compose.yml
+# de dev, só que lá é um volume do compose, aqui é um volume Docker gerenciado pelo Kamal.
+volumes:
+  - "easypizzab_uploads:/app/wwwroot/uploads"
+
 proxy:
   ssl: true
   host: api.nathanbraz.dev

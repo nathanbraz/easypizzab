@@ -42,8 +42,10 @@ public class UploadsController : ControllerBase
             await file.CopyToAsync(fileStream);
         }
 
-        // Retorna a URL relativa da imagem para ser salva no banco
-        var imageUrl = $"http://localhost:5000/uploads/{uniqueFileName}";
+        // Monta a URL a partir da requisição real (Scheme/Host já corrigidos pelo
+        // ForwardedHeaders em Program.cs) — nunca fixo em localhost, senão a imagem só
+        // carrega em quem está rodando localmente, quebra em qualquer outro ambiente.
+        var imageUrl = $"{Request.Scheme}://{Request.Host}/uploads/{uniqueFileName}";
         return Ok(new { url = imageUrl });
     }
 }
