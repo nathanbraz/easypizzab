@@ -35,8 +35,9 @@ public class PaymentWebhookController : ControllerBase
     [HttpPost("{tenantSlug}")]
     public async Task<IActionResult> ReceiveNotification(string tenantSlug, [FromBody] MercadoPagoWebhookPayload? payload)
     {
-        // Sempre 200 OK, mesmo em notificações que ignoramos — evitar retentativas do gateway
-        // pra eventos que não nos interessam (mesma postura já usada no webhook do WhatsApp).
+        // 200 só pro que é genuinamente "não me interessa" — evento de um tipo que a gente nem
+        // trata. Aqui não tem nada pra corrigir depois, então não faz sentido o Mercado Pago
+        // retentar (mesma postura do webhook do WhatsApp, que também descarta ruído assim).
         if (payload?.Type != "order" || string.IsNullOrWhiteSpace(payload.Data?.Id))
         {
             _logger.LogInformation("[WEBHOOK MERCADO PAGO] Notificação ignorada (tipo: {Type}) para {Tenant}", payload?.Type, tenantSlug);
@@ -46,23 +47,31 @@ public class PaymentWebhookController : ControllerBase
         var settings = await _settingsRepository.GetSettingsAsync();
         if (string.IsNullOrWhiteSpace(settings.PaymentGatewayAccessToken))
         {
-            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Notificação recebida para {Tenant}, mas não há gateway configurado. Ignorada.", tenantSlug);
-            return Ok();
+            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Notificação recebida para {Tenant}, mas não há gateway configurado.", tenantSlug);
+            // Não-2xx de propósito: o Mercado Pago retenta automaticamente com backoff em
+            // resposta != 2xx (confirmado na documentação deles). Se alguém configurar o gateway
+            // a tempo de uma dessas retentativas, o pagamento se resolve sozinho, sem intervenção
+            // manual — descartar com 200 aqui perderia essa rede de segurança.
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
         // Validação de assinatura: só processa a notificação se PaymentGatewayWebhookSecret
         // estiver configurado. Sem o segredo configurado, ninguém consegue provar que a chamada
-        // veio de verdade do Mercado Pago — melhor ignorar a notificação do que confiar nela.
+        // veio de verdade do Mercado Pago — melhor não processar do que confiar nela.
         if (string.IsNullOrWhiteSpace(settings.PaymentGatewayWebhookSecret))
         {
-            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Segredo do webhook não configurado para {Tenant}. Notificação ignorada por segurança.", tenantSlug);
-            return Ok();
+            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Segredo do webhook não configurado para {Tenant}.", tenantSlug);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
         if (!IsSignatureValid(Request, payload.Data.Id, settings.PaymentGatewayWebhookSecret))
         {
-            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Assinatura inválida na notificação para {Tenant} (order {GatewayOrderId}). Ignorada.", tenantSlug, payload.Data.Id);
-            return Ok();
+            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Assinatura inválida na notificação para {Tenant} (order {GatewayOrderId}).", tenantSlug, payload.Data.Id);
+            // 401, não 200: uma assinatura inválida pode ser um segredo desatualizado na nossa
+            // configuração (aconteceu de verdade nesta sessão) — nesse caso, corrigir o segredo
+            // e deixar o Mercado Pago retentar resolve sozinho. Devolver 200 aqui faria o Mercado
+            // Pago achar que já entregou com sucesso e nunca mais reenviar essa notificação.
+            return Unauthorized();
         }
 
         try
@@ -72,6 +81,9 @@ public class PaymentWebhookController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[WEBHOOK MERCADO PAGO] Falha ao processar notificação da order {GatewayOrderId} para {Tenant}", payload.Data.Id, tenantSlug);
+            // Idem: erro transitório (rede, banco, etc.) merece nova tentativa do lado do
+            // Mercado Pago, não um 200 que encerra a entrega pro lado deles.
+            return StatusCode(StatusCodes.Status500InternalServerError);
         }
 
         return Ok();
