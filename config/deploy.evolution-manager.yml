@@ -1,0 +1,19 @@
+# Manager UI do Evolution API — SPA estático (nginx) que conecta em qualquer instância
+# Evolution API a partir do navegador (você digita a URL + chave admin na própria tela,
+# não tem variável de ambiente pra configurar aqui). Terceiro, imagem pública, sem build.
+service: evolution-manager-homolog
+
+image: evoapicloud/evolution-manager:latest
+
+servers:
+  web:
+    - 179.198.123.31
+
+builder:
+  arch: amd64
+
+proxy:
+  ssl: true
+  host: evolution-manager.nathanbraz.dev
+  healthcheck:
+    path: /

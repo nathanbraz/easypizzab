@@ -1,0 +1,64 @@
+# Evolution API (gateway de WhatsApp self-hosted, open-source, de terceiros) — não é
+# código nosso, não builda nada, só baixa a imagem pública já pronta do Docker Hub e sobe
+# na mesma VPS. É um segundo "service" Kamal dentro deste mesmo repo (por isso o nome de
+# arquivo diferente — rodar com `kamal deploy -c config/deploy.evolution-api.yml`).
+#
+# Convenção importante (ver TenantResolver.cs): o WhatsappInstanceName de cada loja
+# precisa ser IGUAL ao Slug dela — é assim que o webhook acha o tenant certo.
+service: evolution-api-homolog
+
+image: evoapicloud/evolution-api:latest
+
+servers:
+  web:
+    - 179.198.123.31
+
+env:
+  clear:
+    SERVER_PORT: "8080"
+    DATABASE_PROVIDER: postgresql
+    DATABASE_CONNECTION_CLIENT_NAME: evolution_exchange
+    CACHE_REDIS_ENABLED: "true"
+    CACHE_REDIS_URI: "redis://evolution-api-homolog-redis:6379/6"
+    AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+  secret:
+    # Chave global de admin — usada tanto pelo Manager UI quanto pelo backend
+    # (WhatsappApiKey de cada loja é o token DA INSTÂNCIA, gerado na criação, não esta).
+    - AUTHENTICATION_API_KEY
+    # Connection string completa (senha do Postgres embutida) apontando pro accessory
+    # abaixo — host "evolution-api-homolog-postgres" (padrão #{service}-#{accessory}).
+    - DATABASE_CONNECTION_URI
+
+builder:
+  arch: amd64
+
+proxy:
+  ssl: true
+  host: evolution-api.nathanbraz.dev
+  app_port: 8080
+  healthcheck:
+    path: /
+
+# Banco e cache dedicados desta stack — não reaproveita o Postgres do easypizzab, mantém
+# isolamento. Portas de host diferentes das já usadas (5432 já é do easypizzab).
+accessories:
+  postgres:
+    image: postgres:16
+    host: 179.198.123.31
+    port: "127.0.0.1:5433:5432"
+    env:
+      clear:
+        POSTGRES_USER: postgres
+      secret:
+        # Renomeia — o container do postgres precisa da variável se chamar POSTGRES_PASSWORD,
+        # mas o nome no .kamal/secrets é EVOLUTION_POSTGRES_PASSWORD (pra não colidir com o
+        # POSTGRES_PASSWORD do outro accessory, do easypizzab, no mesmo arquivo de secrets).
+        - POSTGRES_PASSWORD:EVOLUTION_POSTGRES_PASSWORD
+    directories:
+      - postgres-data:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+    host: 179.198.123.31
+    port: "127.0.0.1:6379:6379"
+    directories:
+      - redis-data:/data
