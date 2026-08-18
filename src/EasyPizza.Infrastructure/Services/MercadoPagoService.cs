@@ -97,6 +97,39 @@ public class MercadoPagoService : IPaymentGatewayService
         return new PixChargeResult(parsed.Id, copyPasteCode);
     }
 
+    // Fonte única de verdade sobre o status real de uma cobrança — nunca confia em nada que
+    // alguém mandou pra gente (webhook ou request manual), sempre revalida direto na API.
+    public async Task<PaymentStatusResult> CheckPaymentStatusAsync(string gatewayOrderId)
+    {
+        var settings = await _settingsRepository.GetSettingsAsync();
+        if (string.IsNullOrWhiteSpace(settings.PaymentGatewayAccessToken))
+            throw new InvalidOperationException("Nenhum gateway de pagamento configurado para esta loja (Configurações > Pagamentos).");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{OrdersEndpoint}/{gatewayOrderId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.PaymentGatewayAccessToken);
+
+        var response = await _httpClient.SendAsync(request);
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("[MERCADO PAGO ERROR] Consulta de status da order {GatewayOrderId} | Status: {Status} | Resposta: {Body}", gatewayOrderId, response.StatusCode, responseBody);
+            throw new InvalidOperationException($"Falha ao consultar status no Mercado Pago (status {(int)response.StatusCode}).");
+        }
+
+        var parsed = JsonSerializer.Deserialize<MercadoPagoOrderStatusResponse>(responseBody, JsonOptions);
+        var payment = parsed?.Transactions?.Payments?.FirstOrDefault();
+
+        // IMPORTANTE: "approved" (usado pela Payments API clássica) NÃO é retornado pela Orders
+        // API (a que este sistema usa). Confirmado testando pagamento real de producao: o campo
+        // que realmente indica "dinheiro recebido" aqui é status_detail == "accredited" — o
+        // sistema ficou meses aceitando pagamentos reais sem nunca reconhecer nenhum, porque essa
+        // comparação usava a string errada. status sozinho ("processed") não basta: um pagamento
+        // "processed" pode ter status_detail de falha, accredited é o sinal inequívoco de sucesso.
+        var isApproved = payment?.StatusDetail == "accredited";
+        return new PaymentStatusResult(isApproved, parsed?.ExternalReference, payment?.Id);
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -129,4 +162,12 @@ public class MercadoPagoService : IPaymentGatewayService
     private record MercadoPagoResponsePayment(MercadoPagoResponsePaymentMethod? PaymentMethod);
 
     private record MercadoPagoResponsePaymentMethod(string? QrCode);
+
+    // Só os campos que realmente usamos da resposta de GET /v1/orders/{id} — não é o contrato
+    // completo do Mercado Pago, só a fatia relevante pra confirmar pagamento.
+    private record MercadoPagoOrderStatusResponse(string? ExternalReference, MercadoPagoStatusTransactions? Transactions);
+
+    private record MercadoPagoStatusTransactions(List<MercadoPagoStatusPayment>? Payments);
+
+    private record MercadoPagoStatusPayment(string? Id, string? Status, string? StatusDetail);
 }

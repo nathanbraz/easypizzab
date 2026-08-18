@@ -1,9 +1,7 @@
-using System.Globalization;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using EasyPizza.Application.Interfaces.Repositories;
+using EasyPizza.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EasyPizza.Api.Controllers;
@@ -17,18 +15,18 @@ public class PaymentWebhookController : ControllerBase
 {
     private readonly IStoreSettingsRepository _settingsRepository;
     private readonly IOrderRepository _orderRepository;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IPaymentGatewayService _paymentGatewayService;
     private readonly ILogger<PaymentWebhookController> _logger;
 
     public PaymentWebhookController(
         IStoreSettingsRepository settingsRepository,
         IOrderRepository orderRepository,
-        IHttpClientFactory httpClientFactory,
+        IPaymentGatewayService paymentGatewayService,
         ILogger<PaymentWebhookController> logger)
     {
         _settingsRepository = settingsRepository;
         _orderRepository = orderRepository;
-        _httpClientFactory = httpClientFactory;
+        _paymentGatewayService = paymentGatewayService;
         _logger = logger;
     }
 
@@ -76,7 +74,7 @@ public class PaymentWebhookController : ControllerBase
 
         try
         {
-            await ProcessOrderNotificationAsync(payload.Data.Id, settings.PaymentGatewayAccessToken);
+            await ProcessOrderNotificationAsync(payload.Data.Id);
         }
         catch (Exception ex)
         {
@@ -89,38 +87,22 @@ public class PaymentWebhookController : ControllerBase
         return Ok();
     }
 
-    private async Task ProcessOrderNotificationAsync(string gatewayOrderId, string accessToken)
+    private async Task ProcessOrderNotificationAsync(string gatewayOrderId)
     {
-        var client = _httpClientFactory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.mercadopago.com/v1/orders/{gatewayOrderId}");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        // IPaymentGatewayService.CheckPaymentStatusAsync nunca confia no corpo da notificação —
+        // revalida direto na API do gateway (fonte única de verdade sobre status de pagamento,
+        // reaproveitada também pela verificação manual em OrderService).
+        var status = await _paymentGatewayService.CheckPaymentStatusAsync(gatewayOrderId);
 
-        var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
+        if (string.IsNullOrWhiteSpace(status.ExternalReference) || !int.TryParse(status.ExternalReference, out var orderId))
         {
-            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Falha ao buscar detalhes da order {GatewayOrderId}: {Status} | {Body}", gatewayOrderId, response.StatusCode, body);
+            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Order {GatewayOrderId} sem external_reference válido", gatewayOrderId);
             return;
         }
 
-        var orderDetails = JsonSerializer.Deserialize<MercadoPagoOrderDetails>(body, JsonOptions);
-        var externalReference = orderDetails?.ExternalReference;
-        var payment = orderDetails?.Transactions?.Payments?.FirstOrDefault();
-
-        if (string.IsNullOrWhiteSpace(externalReference) || !int.TryParse(externalReference, out var orderId))
+        if (!status.IsApproved)
         {
-            _logger.LogWarning("[WEBHOOK MERCADO PAGO] Order {GatewayOrderId} sem external_reference válido: {Body}", gatewayOrderId, body);
-            return;
-        }
-
-        // "approved" é o status universal do Mercado Pago para pagamento confirmado em todas as
-        // APIs deles (Payments API clássica, e o valor nesse campo aninhado da Orders API). Os
-        // outros valores (pending/in_process/rejected etc.) significam que ainda não é pra
-        // liberar o pedido.
-        if (payment?.Status != "approved")
-        {
-            _logger.LogInformation("[WEBHOOK MERCADO PAGO] Pedido #{OrderId}: status ainda não aprovado ({Status})", orderId, payment?.Status);
+            _logger.LogInformation("[WEBHOOK MERCADO PAGO] Pedido #{OrderId}: pagamento ainda não confirmado", orderId);
             return;
         }
 
@@ -136,10 +118,10 @@ public class PaymentWebhookController : ControllerBase
         if (order.IsPaid)
             return;
 
-        order.MarkAsPaid(payment.Id);
+        order.MarkAsPaid(status.PaymentId);
         await _orderRepository.SaveChangesAsync();
 
-        _logger.LogInformation("[WEBHOOK MERCADO PAGO] Pedido #{OrderId} marcado como pago (pagamento {PaymentId})", orderId, payment.Id);
+        _logger.LogInformation("[WEBHOOK MERCADO PAGO] Pedido #{OrderId} marcado como pago (pagamento {PaymentId})", orderId, status.PaymentId);
     }
 
     // Confirma que a notificação realmente veio do Mercado Pago, validando a assinatura HMAC-SHA256
@@ -185,21 +167,8 @@ public class PaymentWebhookController : ControllerBase
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(message));
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-    };
 }
 
 public record MercadoPagoWebhookPayload(string? Type, string? Action, MercadoPagoWebhookData? Data);
 
 public record MercadoPagoWebhookData(string? Id);
-
-// Só os campos que realmente usamos da resposta de GET /v1/orders/{id} — não é o contrato
-// completo do Mercado Pago, só a fatia relevante pra confirmar pagamento.
-public record MercadoPagoOrderDetails(string? ExternalReference, MercadoPagoOrderTransactions? Transactions);
-
-public record MercadoPagoOrderTransactions(List<MercadoPagoOrderPayment>? Payments);
-
-public record MercadoPagoOrderPayment(string? Id, string? Status);
