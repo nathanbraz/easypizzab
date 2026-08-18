@@ -203,6 +203,18 @@ public class OrderService(
         }
     }
 
+    public async Task CancelOrderAsync(int orderId, string reason)
+    {
+        var order = await repository.GetByIdAsync(orderId);
+        if (order == null)
+            throw new InvalidOperationException("Pedido não encontrado.");
+
+        order.Cancel(reason);
+        await repository.SaveChangesAsync();
+
+        await NotifyCustomerStatusAsync(order);
+    }
+
     private async Task NotifyCustomerStatusAsync(Order order)
     {
         try
@@ -222,7 +234,7 @@ public class OrderService(
                 OrderStatus.Preparing => $"👨‍🍳 *Pedido em Preparo!*\n\nO seu pedido #{shortId} acabou de ir para o forno na nossa cozinha! Em breve sairá para entrega.",
                 OrderStatus.Delivering => $"🛵 *Saiu para Entrega!*\n\nO seu pedido #{shortId} já está a caminho com o nosso motoboy! Prepare a mesa e o portão.",
                 OrderStatus.Completed => $"✅ *Pedido Entregue!*\n\nO seu pedido #{shortId} foi concluído com sucesso. Bom apetite e obrigado por escolher a Pizzaria Brazil!",
-                OrderStatus.Canceled => $"❌ *Pedido Cancelado:*\n\nO seu pedido #{shortId} foi cancelado. Para dúvidas ou suporte, digite 2 no menu principal do nosso WhatsApp.",
+                OrderStatus.Canceled => $"❌ *Pedido Cancelado:*\n\nO seu pedido #{shortId} foi cancelado.{(string.IsNullOrWhiteSpace(order.CancellationReason) ? "" : $"\nMotivo: {order.CancellationReason}")}\nPara dúvidas ou suporte, digite 2 no menu principal do nosso WhatsApp.",
                 _ => string.Empty
             };
 

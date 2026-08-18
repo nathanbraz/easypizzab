@@ -17,6 +17,7 @@ public interface IOrderService
     Task<Order?> GetOrderByIdAsync(int orderId);
     Task<IEnumerable<Order>> GetOrdersByCustomerAsync(Guid customerId);
     Task UpdateOrderStatusAsync(int orderId, OrderStatus status);
+    Task CancelOrderAsync(int orderId, string reason);
 }
 
 /// <summary>DTO de item de pedido com opções e observação.</summary>

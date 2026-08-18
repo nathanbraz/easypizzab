@@ -49,6 +49,10 @@ public class Order : IntEntity
     // Troco para (quando pagamento for dinheiro)
     public decimal? ChangeFor { get; private set; }
 
+    // Só preenchido quando Status == Canceled (ver Cancel) — obrigatório cancelar com motivo,
+    // pra dar contexto pro cliente e ficar registrado por que aquele pedido não seguiu.
+    public string? CancellationReason { get; private set; }
+
     public Customer? Customer { get; private set; }
     public CustomerAddress? Address { get; private set; }
     public PaymentType? PaymentType { get; private set; }
@@ -96,6 +100,13 @@ public class Order : IntEntity
     public void UpdateStatus(OrderStatus newStatus)
     {
         Status = newStatus;
+        SetUpdatedAt();
+    }
+
+    public void Cancel(string reason)
+    {
+        Status = OrderStatus.Canceled;
+        CancellationReason = reason;
         SetUpdatedAt();
     }
 }

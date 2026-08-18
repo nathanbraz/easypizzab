@@ -90,9 +90,30 @@ public class OrdersController : ControllerBase
         await _orderService.UpdateOrderStatusAsync(orderId, request.Status);
         return NoContent();
     }
+
+    // Endpoint do Admin: Cancelar pedido — motivo é obrigatório, sempre fica registrado (e o
+    // cliente é avisado por WhatsApp, se o bot estiver ativo).
+    [Authorize(Policy = "RequireTenant")]
+    [HttpPatch("admin/{tenantSlug}/{orderId:int}/cancel")]
+    public async Task<IActionResult> CancelOrder(string tenantSlug, int orderId, [FromBody] CancelOrderRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return BadRequest(new { success = false, message = "É necessário informar o motivo do cancelamento." });
+
+        try
+        {
+            await _orderService.CancelOrderAsync(orderId, request.Reason);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { success = false, message = ex.Message });
+        }
+    }
 }
 
 public record CreateOrderRequest(Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items, string? CouponCode = null, decimal? ChangeFor = null);
 public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice, string? Notes = null, List<OrderItemAddonRequest>? Addons = null);
 public record OrderItemAddonRequest(Guid? ProductOptionItemId, string AddonName, decimal Price, int Quantity = 1);
 public record UpdateStatusRequest(OrderStatus Status);
+public record CancelOrderRequest(string Reason);
