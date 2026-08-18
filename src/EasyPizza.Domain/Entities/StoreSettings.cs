@@ -19,10 +19,14 @@ public class StoreSettings : Entity
     public string? LogoUrl { get; private set; }
     public string? BannerUrl { get; private set; }
 
-    // Configurações do Bot e Webhook do WhatsApp
+    // Configurações do Bot do WhatsApp. WhatsappServerUrl não existe mais como campo por
+    // loja — é infraestrutura compartilhada (mesmo Evolution API pra toda loja), fica em
+    // config global (Whatsapp:ServerUrl). WhatsappInstanceName também não existe mais como
+    // campo: por convenção é sempre igual ao Slug da loja, deduzido em tempo de uso (ver
+    // EvolutionApiWhatsappSender) em vez de guardado/editável. WhatsappApiKey só é definido
+    // pelo Master (endpoint próprio em TenantsController), nunca pelo lojista — é ele quem
+    // cria a instância no Evolution API e recebe o token.
     public bool WhatsappBotEnabled { get; private set; }
-    public string? WhatsappServerUrl { get; private set; }
-    public string? WhatsappInstanceName { get; private set; }
     public string? WhatsappApiKey { get; private set; }
     public string? WhatsappSupportPhone { get; private set; }
     public string? WhatsappGreetingMessage { get; private set; }
@@ -55,8 +59,6 @@ public class StoreSettings : Entity
         string? messageOfTheDay,
         string? activeGlobalCouponCode = null,
         bool whatsappBotEnabled = false,
-        string? whatsappServerUrl = null,
-        string? whatsappInstanceName = null,
         string? whatsappApiKey = null,
         string? whatsappSupportPhone = null,
         string? whatsappGreetingMessage = null,
@@ -77,8 +79,6 @@ public class StoreSettings : Entity
         MessageOfTheDay = messageOfTheDay;
         ActiveGlobalCouponCode = activeGlobalCouponCode;
         WhatsappBotEnabled = whatsappBotEnabled;
-        WhatsappServerUrl = whatsappServerUrl;
-        WhatsappInstanceName = whatsappInstanceName;
         WhatsappApiKey = whatsappApiKey;
         WhatsappSupportPhone = whatsappSupportPhone;
         WhatsappGreetingMessage = whatsappGreetingMessage;
@@ -87,6 +87,14 @@ public class StoreSettings : Entity
         PaymentGatewayProvider = paymentGatewayProvider;
         PaymentGatewayAccessToken = paymentGatewayAccessToken;
         PaymentGatewayWebhookSecret = paymentGatewayWebhookSecret;
+    }
+
+    // Só o Master pode definir isso (ver TenantsController) — não passa pelo Update() geral
+    // que o próprio lojista aciona via SettingsController.
+    public void SetWhatsappApiKey(string? whatsappApiKey)
+    {
+        WhatsappApiKey = whatsappApiKey;
+        SetUpdatedAt();
     }
 
     public void Update(
@@ -101,9 +109,6 @@ public class StoreSettings : Entity
         string? messageOfTheDay,
         string? activeGlobalCouponCode,
         bool whatsappBotEnabled = false,
-        string? whatsappServerUrl = null,
-        string? whatsappInstanceName = null,
-        string? whatsappApiKey = null,
         string? whatsappSupportPhone = null,
         string? whatsappGreetingMessage = null,
         string? logoUrl = null,
@@ -123,9 +128,6 @@ public class StoreSettings : Entity
         MessageOfTheDay = messageOfTheDay;
         ActiveGlobalCouponCode = activeGlobalCouponCode;
         WhatsappBotEnabled = whatsappBotEnabled;
-        WhatsappServerUrl = whatsappServerUrl;
-        WhatsappInstanceName = whatsappInstanceName;
-        WhatsappApiKey = whatsappApiKey;
         WhatsappSupportPhone = whatsappSupportPhone;
         WhatsappGreetingMessage = whatsappGreetingMessage;
         LogoUrl = logoUrl;

@@ -33,8 +33,6 @@ public class StoreSettingsRepository : IStoreSettingsRepository
                 messageOfTheDay: "🍕 Bem-vindo à nossa Pizzaria! Peças artesanais feitas com muito carinho e ingredientes selecionados.",
                 activeGlobalCouponCode: null,
                 whatsappBotEnabled: false,
-                whatsappServerUrl: "",
-                whatsappInstanceName: "",
                 whatsappApiKey: "",
                 whatsappSupportPhone: "",
                 whatsappGreetingMessage: "Olá! Bem-vindo ao nosso atendimento automático! 🍕\n\nDigite 1 para acessar nosso Cardápio Digital\nDigite 2 para Falar com Atendente"

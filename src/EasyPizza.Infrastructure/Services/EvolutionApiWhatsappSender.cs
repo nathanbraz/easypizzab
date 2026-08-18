@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using EasyPizza.Application.Interfaces.Repositories;
 using EasyPizza.Application.Interfaces.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace EasyPizza.Infrastructure.Services;
@@ -9,15 +10,21 @@ public class EvolutionApiWhatsappSender : IWhatsappSender
 {
     private readonly HttpClient _httpClient;
     private readonly IStoreSettingsRepository _settingsRepository;
+    private readonly ITenantProvider _tenantProvider;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<EvolutionApiWhatsappSender> _logger;
 
     public EvolutionApiWhatsappSender(
         HttpClient httpClient,
         IStoreSettingsRepository settingsRepository,
+        ITenantProvider tenantProvider,
+        IConfiguration configuration,
         ILogger<EvolutionApiWhatsappSender> logger)
     {
         _httpClient = httpClient;
         _settingsRepository = settingsRepository;
+        _tenantProvider = tenantProvider;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -27,8 +34,12 @@ public class EvolutionApiWhatsappSender : IWhatsappSender
 
         var cleanPhone = new string(phone.Where(char.IsDigit).ToArray());
 
+        // Servidor é infraestrutura compartilhada (mesmo Evolution API pra toda loja), vem de
+        // config global — nunca foi (e não devia ser) um campo por loja.
+        var serverUrl = _configuration["Whatsapp:ServerUrl"];
+
         // Se o servidor ou a API Key não estiverem configurados, loga no console de forma humanizada e limpa
-        if (string.IsNullOrWhiteSpace(settings.WhatsappServerUrl) || string.IsNullOrWhiteSpace(settings.WhatsappApiKey))
+        if (string.IsNullOrWhiteSpace(serverUrl) || string.IsNullOrWhiteSpace(settings.WhatsappApiKey))
         {
             _logger.LogInformation("==============================================================");
             _logger.LogInformation("[WHATSAPP MOCK SENDER] MENSAGEM GERADA PELO ROBÔ (MODO SIMULAÇÃO / TESTE):");
@@ -40,8 +51,10 @@ public class EvolutionApiWhatsappSender : IWhatsappSender
 
         try
         {
-            var serverUrl = settings.WhatsappServerUrl.TrimEnd('/');
-            var instanceName = !string.IsNullOrWhiteSpace(settings.WhatsappInstanceName) ? settings.WhatsappInstanceName : "pizzariabrazil";
+            serverUrl = serverUrl.TrimEnd('/');
+            // Por convenção, o nome da instância no Evolution API é sempre igual ao slug da loja
+            // (ver TenantResolver.cs, que já assume isso pro roteamento do webhook de entrada).
+            var instanceName = _tenantProvider.GetTenant()?.Slug ?? "pizzariabrazil";
 
             // Se o usuário colou a URL já com a instância no final (ex: https://api.ultramsg.com/instance186299), removemos para não duplicar
             if (serverUrl.EndsWith($"/{instanceName}", StringComparison.OrdinalIgnoreCase))
@@ -94,7 +107,7 @@ public class EvolutionApiWhatsappSender : IWhatsappSender
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[WHATSAPP SENDER EXCEPTION] Erro ao tentar enviar mensagem para o Evolution API no endereço: {Url}", settings.WhatsappServerUrl);
+            _logger.LogError(ex, "[WHATSAPP SENDER EXCEPTION] Erro ao tentar enviar mensagem para o Evolution API no endereço: {Url}", serverUrl);
         }
     }
 }

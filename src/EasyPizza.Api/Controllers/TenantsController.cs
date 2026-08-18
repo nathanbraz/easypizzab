@@ -123,6 +123,35 @@ public class TenantsController : ControllerBase
         await tenantDbContext.SaveChangesAsync();
     }
 
+    // Só o Master define isso — é ele quem cria a instância no Evolution API (Manager UI) e
+    // recebe o token dela. O lojista nunca vê nem edita esse campo (ver SettingsController,
+    // que não aceita mais WhatsappApiKey no PUT do admin da loja).
+    [Authorize(Policy = MasterPermissions.EditTenants)]
+    [HttpPut("{slug}/whatsapp-api-key")]
+    public async Task<IActionResult> SetWhatsappApiKey(string slug, [FromBody] SetWhatsappApiKeyRequest request)
+    {
+        var tenant = await _masterDb.Tenants.FirstOrDefaultAsync(t => t.Slug == slug.ToLower());
+        if (tenant == null) return NotFound("Tenant não encontrado no Banco Mestre.");
+
+        try
+        {
+            var optionsBuilder = new DbContextOptionsBuilder<EasyPizzaDbContext>();
+            optionsBuilder.UseNpgsql(tenant.ConnectionString);
+            using var tenantDbContext = new EasyPizzaDbContext(optionsBuilder.Options);
+
+            var settingsRepo = new StoreSettingsRepository(tenantDbContext);
+            var settings = await settingsRepo.GetSettingsAsync();
+            settings.SetWhatsappApiKey(request.WhatsappApiKey);
+            await settingsRepo.UpdateAsync(settings);
+
+            return Ok(new { success = true, message = $"WhatsappApiKey de {tenant.Name} ({tenant.Slug}) atualizado." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Erro ao atualizar WhatsappApiKey: " + ex.Message });
+        }
+    }
+
     [Authorize(Policy = MasterPermissions.EditTenants)]
     [HttpPost("{slug}/migrate")]
     public async Task<IActionResult> MigrateTenant(string slug)
@@ -204,7 +233,9 @@ public class TenantsController : ControllerBase
 }
 
 public record CreateTenantRequest(
-    string Name, 
-    string? Slug, 
+    string Name,
+    string? Slug,
     string? ConnectionString);
+
+public record SetWhatsappApiKeyRequest(string? WhatsappApiKey);
 

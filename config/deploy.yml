@@ -23,6 +23,9 @@ env:
     # Usado pelo bot de WhatsApp pra montar o magic link enviado ao cliente — precisa
     # apontar pro domínio público de cada loja, não pro localhost de dev.
     Frontend__BaseUrlTemplate: "https://{slug}.nathanbraz.dev"
+    # Evolution API — a mesma instância atende toda loja (só muda o nome da instância,
+    # que é sempre o slug da loja). Não é secret: é só um endereço, não uma credencial.
+    Whatsapp__ServerUrl: "https://evolution-api.nathanbraz.dev"
   secret:
     - ConnectionStrings__MasterConnection
     - Jwt__Key

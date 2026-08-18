@@ -65,7 +65,7 @@ public class SettingsController : ControllerBase
         // Campos de credencial: o formulário do admin nunca reenvia o segredo já salvo (ele nem
         // sabe qual é), só manda um valor novo quando o lojista realmente quer trocá-lo. Em
         // branco/nulo aqui significa "manter o que já está salvo", não "apagar".
-        var whatsappApiKey = string.IsNullOrWhiteSpace(request.WhatsappApiKey) ? settings.WhatsappApiKey : request.WhatsappApiKey;
+        // (WhatsappApiKey não entra aqui de propósito — só o Master define, via TenantsController.)
 
         // Só existe integração com o Mercado Pago hoje, então o provider é sempre esse quando um
         // token novo é salvo. Quando outro gateway existir, isso vira um valor vindo do request.
@@ -85,9 +85,6 @@ public class SettingsController : ControllerBase
             request.MessageOfTheDay,
             request.ActiveGlobalCouponCode,
             request.WhatsappBotEnabled,
-            request.WhatsappServerUrl,
-            request.WhatsappInstanceName,
-            whatsappApiKey,
             request.WhatsappSupportPhone,
             request.WhatsappGreetingMessage,
             request.LogoUrl,
@@ -128,9 +125,6 @@ public record UpdateSettingsRequest(
     string? MessageOfTheDay,
     string? ActiveGlobalCouponCode,
     bool WhatsappBotEnabled,
-    string? WhatsappServerUrl,
-    string? WhatsappInstanceName,
-    string? WhatsappApiKey,
     string? WhatsappSupportPhone,
     string? WhatsappGreetingMessage,
     string? LogoUrl = null,
@@ -189,8 +183,6 @@ public record AdminStoreSettingsDto(
     string? LogoUrl,
     string? BannerUrl,
     bool WhatsappBotEnabled,
-    string? WhatsappServerUrl,
-    string? WhatsappInstanceName,
     bool HasWhatsappApiKey,
     string? WhatsappSupportPhone,
     string? WhatsappGreetingMessage,
@@ -212,8 +204,6 @@ public record AdminStoreSettingsDto(
         settings.LogoUrl,
         settings.BannerUrl,
         settings.WhatsappBotEnabled,
-        settings.WhatsappServerUrl,
-        settings.WhatsappInstanceName,
         !string.IsNullOrWhiteSpace(settings.WhatsappApiKey),
         settings.WhatsappSupportPhone,
         settings.WhatsappGreetingMessage,
