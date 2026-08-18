@@ -1,17 +1,27 @@
 # Evolution API (gateway de WhatsApp self-hosted, open-source, de terceiros) — não é
-# código nosso, não builda nada, só baixa a imagem pública já pronta do Docker Hub e sobe
-# na mesma VPS. É um segundo "service" Kamal dentro deste mesmo repo (por isso o nome de
-# arquivo diferente — rodar com `kamal deploy -c config/deploy.evolution-api.yml`).
+# código nosso, não builda nada. A imagem original é pública no Docker Hub
+# (evoapicloud/evolution-api), mas o Kamal exige credencial de registry mesmo pra só
+# puxar, e puxar anônimo do Docker Hub não é uma opção configurável aqui — por isso
+# espelhamos a imagem pro nosso próprio GHCR (mesma conta dos outros dois apps) em vez de
+# apontar pro Docker Hub direto. É um segundo "service" Kamal dentro deste mesmo repo
+# (por isso o nome de arquivo diferente — rodar com
+# `kamal deploy -c config/deploy.evolution-api.yml`).
 #
 # Convenção importante (ver TenantResolver.cs): o WhatsappInstanceName de cada loja
 # precisa ser IGUAL ao Slug dela — é assim que o webhook acha o tenant certo.
 service: evolution-api-homolog
 
-image: evoapicloud/evolution-api:latest
+image: nathanbraz/evolution-api
 
 servers:
   web:
     - 179.198.123.31
+
+registry:
+  server: ghcr.io
+  username: nathanbraz
+  password:
+    - KAMAL_REGISTRY_PASSWORD
 
 env:
   clear:

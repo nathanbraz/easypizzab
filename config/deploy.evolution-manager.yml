@@ -1,13 +1,21 @@
 # Manager UI do Evolution API — SPA estático (nginx) que conecta em qualquer instância
 # Evolution API a partir do navegador (você digita a URL + chave admin na própria tela,
-# não tem variável de ambiente pra configurar aqui). Terceiro, imagem pública, sem build.
+# não tem variável de ambiente pra configurar aqui). Terceiro, sem build — espelhada pro
+# nosso GHCR pelo mesmo motivo do deploy.evolution-api.yml (Kamal exige credencial de
+# registry mesmo só pra puxar imagem).
 service: evolution-manager-homolog
 
-image: evoapicloud/evolution-manager:latest
+image: nathanbraz/evolution-manager
 
 servers:
   web:
     - 179.198.123.31
+
+registry:
+  server: ghcr.io
+  username: nathanbraz
+  password:
+    - KAMAL_REGISTRY_PASSWORD
 
 builder:
   arch: amd64
