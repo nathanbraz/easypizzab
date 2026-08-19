@@ -152,59 +152,6 @@ public class TenantsController : ControllerBase
         }
     }
 
-    // Idem WhatsappApiKey: só o Master sabe se a credencial de pagamento colada pelo lojista é
-    // de teste ou de produção (ele quem orientou o lojista a gerar o token, ou configurou na
-    // hora do onboarding) — por isso esse campo saiu da tela de Configurações da loja.
-    [Authorize(Policy = MasterPermissions.ViewTenants)]
-    [HttpGet("{slug}/payment-sandbox-mode")]
-    public async Task<IActionResult> GetPaymentSandboxMode(string slug)
-    {
-        var tenant = await _masterDb.Tenants.FirstOrDefaultAsync(t => t.Slug == slug.ToLower());
-        if (tenant == null) return NotFound("Tenant não encontrado no Banco Mestre.");
-
-        try
-        {
-            var optionsBuilder = new DbContextOptionsBuilder<EasyPizzaDbContext>();
-            optionsBuilder.UseNpgsql(tenant.ConnectionString);
-            using var tenantDbContext = new EasyPizzaDbContext(optionsBuilder.Options);
-
-            var settingsRepo = new StoreSettingsRepository(tenantDbContext);
-            var settings = await settingsRepo.GetSettingsAsync();
-
-            return Ok(new { paymentGatewaySandboxMode = settings.PaymentGatewaySandboxMode });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { success = false, message = "Erro ao consultar o ambiente de pagamento: " + ex.Message });
-        }
-    }
-
-    [Authorize(Policy = MasterPermissions.EditTenants)]
-    [HttpPut("{slug}/payment-sandbox-mode")]
-    public async Task<IActionResult> SetPaymentSandboxMode(string slug, [FromBody] SetPaymentSandboxModeRequest request)
-    {
-        var tenant = await _masterDb.Tenants.FirstOrDefaultAsync(t => t.Slug == slug.ToLower());
-        if (tenant == null) return NotFound("Tenant não encontrado no Banco Mestre.");
-
-        try
-        {
-            var optionsBuilder = new DbContextOptionsBuilder<EasyPizzaDbContext>();
-            optionsBuilder.UseNpgsql(tenant.ConnectionString);
-            using var tenantDbContext = new EasyPizzaDbContext(optionsBuilder.Options);
-
-            var settingsRepo = new StoreSettingsRepository(tenantDbContext);
-            var settings = await settingsRepo.GetSettingsAsync();
-            settings.SetPaymentGatewaySandboxMode(request.PaymentGatewaySandboxMode);
-            await settingsRepo.UpdateAsync(settings);
-
-            return Ok(new { success = true, message = $"Ambiente de pagamento de {tenant.Name} ({tenant.Slug}) atualizado." });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { success = false, message = "Erro ao atualizar o ambiente de pagamento: " + ex.Message });
-        }
-    }
-
     [Authorize(Policy = MasterPermissions.EditTenants)]
     [HttpPost("{slug}/migrate")]
     public async Task<IActionResult> MigrateTenant(string slug)
@@ -291,5 +238,4 @@ public record CreateTenantRequest(
     string? ConnectionString);
 
 public record SetWhatsappApiKeyRequest(string? WhatsappApiKey);
-public record SetPaymentSandboxModeRequest(bool PaymentGatewaySandboxMode);
 
