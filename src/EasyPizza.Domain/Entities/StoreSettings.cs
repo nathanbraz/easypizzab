@@ -108,6 +108,15 @@ public class StoreSettings : Entity
         SetUpdatedAt();
     }
 
+    // Mesmo racional do WhatsappApiKey: só o Master decide se a credencial de pagamento colada
+    // é de teste ou de produção (é ele quem sabe qual token pediu pro lojista, ou qual configurou
+    // durante o onboarding) — o lojista nunca vê nem edita esse campo (ver SettingsController).
+    public void SetPaymentGatewaySandboxMode(bool paymentGatewaySandboxMode)
+    {
+        PaymentGatewaySandboxMode = paymentGatewaySandboxMode;
+        SetUpdatedAt();
+    }
+
     public void Update(
         bool isStoreOpen, 
         decimal deliveryFee, 
@@ -126,8 +135,7 @@ public class StoreSettings : Entity
         string? bannerUrl = null,
         string? paymentGatewayProvider = null,
         string? paymentGatewayAccessToken = null,
-        string? paymentGatewayWebhookSecret = null,
-        bool paymentGatewaySandboxMode = true)
+        string? paymentGatewayWebhookSecret = null)
     {
         IsStoreOpen = isStoreOpen;
         DeliveryFee = deliveryFee;
@@ -147,7 +155,6 @@ public class StoreSettings : Entity
         PaymentGatewayProvider = paymentGatewayProvider;
         PaymentGatewayAccessToken = paymentGatewayAccessToken;
         PaymentGatewayWebhookSecret = paymentGatewayWebhookSecret;
-        PaymentGatewaySandboxMode = paymentGatewaySandboxMode;
         SetUpdatedAt();
     }
 }

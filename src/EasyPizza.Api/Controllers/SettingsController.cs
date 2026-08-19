@@ -38,10 +38,10 @@ public class SettingsController : ControllerBase
         });
     }
 
-    // Autenticado: alimenta a tela de Configurações do admin. Mostra tudo que o lojista precisa
-    // ver e editar, exceto os valores de credenciais já salvas — pra essas, só um indicador
-    // booleano (HasWhatsappApiKey/HasPaymentGatewayAccessToken). O valor em si nunca volta pro
-    // navegador depois de salvo, só é possível sobrescrevê-lo (ver UpdateSettings).
+    // Autenticado: alimenta a tela de Configurações do admin. WhatsappApiKey continua só um
+    // indicador booleano (HasWhatsappApiKey) — só o Master define/vê esse valor, ver
+    // TenantsController. Access Token/Chave de Webhook do gateway de pagamento voltam em texto
+    // puro, já que o lojista é dono dessa credencial (ver AdminStoreSettingsDto).
     [Authorize(Policy = "RequireTenant")]
     [HttpGet("admin")]
     public async Task<IActionResult> GetSettingsForAdmin()
@@ -91,8 +91,7 @@ public class SettingsController : ControllerBase
             request.BannerUrl,
             paymentGatewayProvider,
             paymentGatewayAccessToken,
-            paymentGatewayWebhookSecret,
-            request.PaymentGatewaySandboxMode
+            paymentGatewayWebhookSecret
         );
 
         await _settingsRepository.UpdateAsync(settings);
@@ -131,8 +130,7 @@ public record UpdateSettingsRequest(
     string? LogoUrl = null,
     string? BannerUrl = null,
     string? PaymentGatewayAccessToken = null,
-    string? PaymentGatewayWebhookSecret = null,
-    bool PaymentGatewaySandboxMode = true
+    string? PaymentGatewayWebhookSecret = null
 );
 
 public record TogglePaymentRequest(bool IsActive);
@@ -168,9 +166,11 @@ public record PublicStoreSettingsDto(
         settings.BannerUrl);
 }
 
-// Formato de StoreSettings pro admin autenticado: tudo que ele pode configurar, mas credenciais
-// (WhatsappApiKey, PaymentGatewayAccessToken) viram só um booleano "já configurado" — o valor em
-// texto puro nunca é devolvido pelo backend depois de salvo.
+// Formato de StoreSettings pro admin autenticado: tudo que ele pode configurar. WhatsappApiKey
+// continua só um booleano "já configurado" (só o Master mexe nele, ver TenantsController). Já
+// Access Token/Chave de Webhook do gateway de pagamento voltam em texto puro — o próprio lojista
+// é o dono dessa credencial e precisa poder conferir/copiar de novo sem ter que gerar outra no
+// Mercado Pago; a tela mantém oculto por padrão com opção de revelar (ver Settings/index.tsx).
 public record AdminStoreSettingsDto(
     bool IsStoreOpen,
     decimal DeliveryFee,
@@ -189,9 +189,8 @@ public record AdminStoreSettingsDto(
     string? WhatsappSupportPhone,
     string? WhatsappGreetingMessage,
     string? PaymentGatewayProvider,
-    bool HasPaymentGatewayAccessToken,
-    bool HasPaymentGatewayWebhookSecret,
-    bool PaymentGatewaySandboxMode)
+    string? PaymentGatewayAccessToken,
+    string? PaymentGatewayWebhookSecret)
 {
     public static AdminStoreSettingsDto From(StoreSettings settings) => new(
         settings.IsStoreOpen,
@@ -211,7 +210,6 @@ public record AdminStoreSettingsDto(
         settings.WhatsappSupportPhone,
         settings.WhatsappGreetingMessage,
         settings.PaymentGatewayProvider,
-        !string.IsNullOrWhiteSpace(settings.PaymentGatewayAccessToken),
-        !string.IsNullOrWhiteSpace(settings.PaymentGatewayWebhookSecret),
-        settings.PaymentGatewaySandboxMode);
+        settings.PaymentGatewayAccessToken,
+        settings.PaymentGatewayWebhookSecret);
 }
