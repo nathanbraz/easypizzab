@@ -34,9 +34,11 @@ public class OrderService(
             if (!product.IsAvailable)
                 throw new InvalidOperationException($"O produto \"{product.Name}\" não está disponível no momento.");
 
-            var validOptions = (await catalogRepository.GetProductOptionsAsync(item.ProductId))
+            var productOptionGroups = (await catalogRepository.GetProductOptionsAsync(item.ProductId)).ToList();
+            var validOptions = productOptionGroups
                 .SelectMany(g => g.Options)
                 .ToDictionary(o => o.Id);
+            var flavorGroup = productOptionGroups.FirstOrDefault(g => g.IsFlavorGroup);
 
             var recalculatedAddons = new List<OrderItemAddonInput>();
             decimal addonsTotal = 0;
@@ -54,40 +56,79 @@ public class OrderService(
                 }
             }
 
-            // Pizza Meio a Meio: a 2ª metade não é um item de catálogo (Tamanho/Borda/Adicionais),
-            // então não tem como validar contra ProductOptionGroups/CategoryOptionItems como os
-            // outros adicionais acima — por isso vem num campo próprio (SecondHalfProductId), não
-            // misturada em Addons. Mesmo assim o preço nunca é confiado do cliente: refaz aqui o
-            // mesmo cálculo do ProductModal (só cobra a diferença pra cima, item por item, entre o
-            // que o 2º sabor cobra e o que o 1º já cobrou pelas MESMAS opções compartilhadas
-            // selecionadas), usando exclusivamente dados recém-lidos do catálogo.
-            if (item.SecondHalfProductId.HasValue)
+            // Pizza Meio a Meio (Sabores): generalizado como grupo compartilhado da categoria —
+            // mesmo mecanismo de Tamanho/Borda/Adicionais, sem caso especial de validação. O
+            // cliente só manda os ids dos Produtos-sabor extras; preço e elegibilidade vêm sempre
+            // do catálogo, nunca do payload.
+            var requestedFlavorCount = item.FlavorProductIds?.Count ?? 0;
+            if (flavorGroup != null && requestedFlavorCount < flavorGroup.MinChoices)
+                throw new InvalidOperationException($"Escolha pelo menos {flavorGroup.MinChoices} sabor(es) extra(s) para \"{product.Name}\".");
+
+            if (item.FlavorProductIds is { Count: > 0 } requestedFlavorIds)
             {
-                var secondProduct = await catalogRepository.GetProductByIdAsync(item.SecondHalfProductId.Value)
-                    ?? throw new InvalidOperationException("Produto da 2ª metade não encontrado.");
+                if (flavorGroup == null)
+                    throw new InvalidOperationException($"O produto \"{product.Name}\" não permite escolher mais de um sabor.");
 
-                if (!secondProduct.IsAvailable)
-                    throw new InvalidOperationException($"O produto \"{secondProduct.Name}\" (2ª metade) não está disponível no momento.");
+                if (requestedFlavorIds.Count > flavorGroup.MaxChoices)
+                    throw new InvalidOperationException($"Escolha no máximo {flavorGroup.MaxChoices} sabor(es) extra(s).");
 
-                var secondProductOptions = (await catalogRepository.GetProductOptionsAsync(item.SecondHalfProductId.Value))
-                    .SelectMany(g => g.Options)
-                    .ToDictionary(o => o.Id);
+                var flavorOptionsByProductId = flavorGroup.Options
+                    .Where(o => o.LinkedProductId.HasValue)
+                    .ToDictionary(o => o.LinkedProductId!.Value);
 
-                decimal halfAndHalfExtra = 0;
-                foreach (var addon in recalculatedAddons)
+                var extraFlavors = new List<Product>();
+                foreach (var flavorProductId in requestedFlavorIds)
                 {
-                    if (addon.ProductOptionItemId.HasValue && secondProductOptions.TryGetValue(addon.ProductOptionItemId.Value, out var secondOption))
-                    {
-                        var diff = secondOption.AdditionalPrice - addon.Price;
-                        if (diff > 0) halfAndHalfExtra += diff;
-                    }
+                    if (!flavorOptionsByProductId.ContainsKey(flavorProductId))
+                        throw new InvalidOperationException($"Sabor inválido para o produto \"{product.Name}\".");
+
+                    var flavorProduct = await catalogRepository.GetProductByIdAsync(flavorProductId)
+                        ?? throw new InvalidOperationException("Sabor não encontrado.");
+
+                    if (!flavorProduct.IsAvailable)
+                        throw new InvalidOperationException($"O sabor \"{flavorProduct.Name}\" não está disponível no momento.");
+
+                    extraFlavors.Add(flavorProduct);
                 }
 
-                var baseDiff = secondProduct.Price - product.Price;
-                if (baseDiff > 0) halfAndHalfExtra += baseDiff;
+                // Preço total de cada sabor (base + as MESMAS opções compartilhadas já selecionadas,
+                // pelo preço que aquele sabor específico cobra por elas) — não é diferença, é o preço
+                // cheio de cada sabor, pra aplicar a estratégia da loja sobre o conjunto.
+                async Task<decimal> FlavorTotalAsync(Product flavorProduct)
+                {
+                    var options = (await catalogRepository.GetProductOptionsAsync(flavorProduct.Id))
+                        .SelectMany(g => g.Options)
+                        .ToDictionary(o => o.Id);
 
-                recalculatedAddons.Add(new OrderItemAddonInput(null, $"Meia {secondProduct.Name}", halfAndHalfExtra, 1));
-                addonsTotal += halfAndHalfExtra;
+                    var total = flavorProduct.Price;
+                    foreach (var addon in recalculatedAddons)
+                    {
+                        if (addon.ProductOptionItemId.HasValue && options.TryGetValue(addon.ProductOptionItemId.Value, out var flavorOption))
+                            total += flavorOption.AdditionalPrice;
+                    }
+                    return total;
+                }
+
+                var baseTotal = await FlavorTotalAsync(product);
+                var allTotals = new List<decimal> { baseTotal };
+                foreach (var extraFlavor in extraFlavors)
+                    allTotals.Add(await FlavorTotalAsync(extraFlavor));
+
+                var combinedTotal = flavorGroup.FlavorPriceStrategy switch
+                {
+                    FlavorPriceStrategy.Soma => allTotals.Sum(),
+                    FlavorPriceStrategy.Media => allTotals.Average(),
+                    FlavorPriceStrategy.MaisBarato => allTotals.Min(),
+                    _ => allTotals.Max()
+                };
+
+                var flavorExtra = Math.Max(0, combinedTotal - baseTotal);
+                if (flavorExtra > 0)
+                {
+                    var flavorNames = string.Join(" + ", extraFlavors.Select(f => f.Name));
+                    recalculatedAddons.Add(new OrderItemAddonInput(null, $"Meio a Meio: {flavorNames}", flavorExtra, 1));
+                    addonsTotal += flavorExtra;
+                }
             }
 
             // Sugestão de cross-sell (carrossel "Aproveite e leve também"): usa o preço de combo

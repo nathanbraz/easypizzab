@@ -1,3 +1,5 @@
+using EasyPizza.Domain.Entities;
+
 namespace EasyPizza.Application.DTOs;
 
 // Formato unificado devolvido por GET /productoptions/{tenantSlug}/product/{id} — o mesmo shape
@@ -20,6 +22,11 @@ public class ProductOptionGroupDto
     // extras — gerenciado aqui mesmo, via ProductOptionsController). O admin usa isso pra saber
     // qual CRUD chamar; editar/excluir um grupo compartilhado pelas rotas de produto não funciona.
     public bool IsShared { get; set; }
+
+    // true = este é o grupo de Sabores da categoria (generaliza o Meio a Meio) — cada item nele
+    // referencia um Produto de verdade da mesma categoria (ver ProductOptionItemDto.LinkedProductId).
+    public bool IsFlavorGroup { get; set; }
+    public FlavorPriceStrategy FlavorPriceStrategy { get; set; } = FlavorPriceStrategy.MaisCaro;
 }
 
 public class ProductOptionItemDto
@@ -28,6 +35,9 @@ public class ProductOptionItemDto
     public string Name { get; set; } = string.Empty;
     public decimal AdditionalPrice { get; set; }
     public int DisplayOrder { get; set; }
+
+    // Só preenchido em itens do grupo de Sabores: qual Produto este item representa.
+    public Guid? LinkedProductId { get; set; }
 }
 
 // Resposta de GET /menu/{tenantSlug} — mesmos campos que Product/ProductCategory sempre tiveram,
@@ -38,7 +48,6 @@ public class CatalogCategoryDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public int DisplayOrder { get; set; }
-    public bool AllowsHalfAndHalf { get; set; }
     public List<CatalogProductDto> Products { get; set; } = new();
 }
 

@@ -56,17 +56,22 @@ public class CatalogRepository : ICatalogRepository
                 ItemName = price.CategoryOptionItem!.Name,
                 ItemDisplayOrder = price.CategoryOptionItem!.DisplayOrder,
                 ItemUniformPrice = price.CategoryOptionItem!.UniformPrice,
+                ItemProductId = price.CategoryOptionItem!.ProductId,
                 GroupId = price.CategoryOptionItem!.Group!.Id,
                 GroupName = price.CategoryOptionItem!.Group!.Name,
                 GroupMin = price.CategoryOptionItem!.Group!.MinChoices,
                 GroupMax = price.CategoryOptionItem!.Group!.MaxChoices,
                 GroupDisplayOrder = price.CategoryOptionItem!.Group!.DisplayOrder,
-                GroupHasUniformPricing = price.CategoryOptionItem!.Group!.HasUniformPricing
+                GroupHasUniformPricing = price.CategoryOptionItem!.Group!.HasUniformPricing,
+                GroupIsFlavorGroup = price.CategoryOptionItem!.Group!.IsFlavorGroup,
+                GroupFlavorPriceStrategy = price.CategoryOptionItem!.Group!.FlavorPriceStrategy
             })
+            // No grupo de Sabores, um produto nunca oferece a si mesmo como "sabor extra".
+            .Where(x => x.ItemProductId == null || x.ItemProductId != productId)
             .ToListAsync();
 
         result.AddRange(sharedRows
-            .GroupBy(x => new { x.GroupId, x.GroupName, x.GroupMin, x.GroupMax, x.GroupDisplayOrder })
+            .GroupBy(x => new { x.GroupId, x.GroupName, x.GroupMin, x.GroupMax, x.GroupDisplayOrder, x.GroupIsFlavorGroup, x.GroupFlavorPriceStrategy })
             .Select(g => new ProductOptionGroupDto
             {
                 Id = g.Key.GroupId,
@@ -77,6 +82,8 @@ public class CatalogRepository : ICatalogRepository
                 MaxChoices = g.Key.GroupMax,
                 DisplayOrder = g.Key.GroupDisplayOrder,
                 IsShared = true,
+                IsFlavorGroup = g.Key.GroupIsFlavorGroup,
+                FlavorPriceStrategy = g.Key.GroupFlavorPriceStrategy,
                 Options = g.OrderBy(x => x.ItemDisplayOrder).Select(x => new ProductOptionItemDto
                 {
                     Id = x.ItemId,
@@ -85,7 +92,8 @@ public class CatalogRepository : ICatalogRepository
                     // valor gravado na linha do produto — assim mudar o preço uma vez na categoria
                     // já reflete em todo produto que oferece o item, sem precisar tocar em cada um.
                     AdditionalPrice = (x.GroupHasUniformPricing ? x.ItemUniformPrice : x.AdditionalPrice) ?? 0,
-                    DisplayOrder = x.ItemDisplayOrder
+                    DisplayOrder = x.ItemDisplayOrder,
+                    LinkedProductId = x.ItemProductId
                 }).ToList()
             }));
 
@@ -108,8 +116,7 @@ public class CatalogRepository : ICatalogRepository
             {
                 Id = category.Id,
                 Name = category.Name,
-                DisplayOrder = category.DisplayOrder,
-                AllowsHalfAndHalf = category.AllowsHalfAndHalf
+                DisplayOrder = category.DisplayOrder
             };
 
             foreach (var product in category.Products.OrderBy(p => p.Name))

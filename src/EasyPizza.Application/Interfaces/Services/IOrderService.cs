@@ -27,11 +27,12 @@ public record OrderItemInput(
     decimal UnitPrice,
     string? Notes = null,
     List<OrderItemAddonInput>? Addons = null,
-    // Pizza Meio a Meio: id do produto escolhido pra 2ª metade. Fica separado de Addons de
-    // propósito — não é uma opção de catálogo (Tamanho/Borda/Adicionais), é outro produto inteiro
-    // combinado com este. O preço da diferença é sempre recalculado no backend (OrderService),
-    // nunca confiado daqui.
-    Guid? SecondHalfProductId = null,
+    // Pizza Meio a Meio (Sabores): ids dos Produtos-sabor extras escolhidos, além deste próprio
+    // produto. Fica separado de Addons porque cada sabor é um Produto inteiro, não uma opção de
+    // catálogo solta — mas a validação (elegibilidade, min/máx) usa o mesmo grupo compartilhado
+    // da categoria (IsFlavorGroup) que Tamanho/Borda/Adicionais já usam. Preço sempre recalculado
+    // no backend (OrderService), nunca confiado daqui.
+    List<Guid>? FlavorProductIds = null,
     // Marca que este item veio do carrossel "Aproveite e leve também" do checkout — se o produto
     // tiver Product.CrossSellDiscountPrice configurado, o backend usa esse preço em vez do preço
     // normal (ver OrderService). Só um sinalizador; o valor do desconto em si nunca vem do cliente.

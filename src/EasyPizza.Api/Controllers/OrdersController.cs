@@ -36,7 +36,7 @@ public class OrdersController : ControllerBase
                 i.UnitPrice,
                 i.Notes,
                 i.Addons?.Select(a => new OrderItemAddonInput(a.ProductOptionItemId, a.AddonName, a.Price, a.Quantity)).ToList(),
-                i.SecondHalfProductId,
+                i.FlavorProductIds,
                 i.IsCrossSell
             )).ToList();
 
@@ -115,7 +115,7 @@ public class OrdersController : ControllerBase
 }
 
 public record CreateOrderRequest(Guid? CustomerAddressId, OrderType Type, Guid PaymentTypeId, List<OrderItemRequest> Items, string? CouponCode = null, decimal? ChangeFor = null);
-public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice, string? Notes = null, List<OrderItemAddonRequest>? Addons = null, Guid? SecondHalfProductId = null, bool IsCrossSell = false);
+public record OrderItemRequest(Guid ProductId, int Quantity, decimal UnitPrice, string? Notes = null, List<OrderItemAddonRequest>? Addons = null, List<Guid>? FlavorProductIds = null, bool IsCrossSell = false);
 public record OrderItemAddonRequest(Guid? ProductOptionItemId, string AddonName, decimal Price, int Quantity = 1);
 public record UpdateStatusRequest(OrderStatus Status);
 public record CancelOrderRequest(string Reason);

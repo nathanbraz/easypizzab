@@ -159,6 +159,10 @@ public class EasyPizzaDbContext : IdentityDbContext<ApplicationUser, Application
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.UniformPrice).HasColumnType("decimal(18,2)");
+            entity.HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ProductCategoryOptionPrice>(entity =>
