@@ -31,7 +31,11 @@ public record OrderItemInput(
     // propósito — não é uma opção de catálogo (Tamanho/Borda/Adicionais), é outro produto inteiro
     // combinado com este. O preço da diferença é sempre recalculado no backend (OrderService),
     // nunca confiado daqui.
-    Guid? SecondHalfProductId = null);
+    Guid? SecondHalfProductId = null,
+    // Marca que este item veio do carrossel "Aproveite e leve também" do checkout — se o produto
+    // tiver Product.CrossSellDiscountPrice configurado, o backend usa esse preço em vez do preço
+    // normal (ver OrderService). Só um sinalizador; o valor do desconto em si nunca vem do cliente.
+    bool IsCrossSell = false);
 
 /// <summary>DTO de adicional/opção selecionada por item de pedido.</summary>
 public record OrderItemAddonInput(

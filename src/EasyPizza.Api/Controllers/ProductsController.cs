@@ -37,7 +37,7 @@ public class ProductsController : ControllerBase
         var product = new Product(request.CategoryId, request.Name, request.Description, request.Price);
         if (request.ImageUrls != null && request.ImageUrls.Any() || request.ShowInCrossSell)
         {
-            product.UpdateDetails(request.Name, request.Description, request.Price, request.ImageUrls ?? new List<string>(), true, request.ShowInCrossSell);
+            product.UpdateDetails(request.Name, request.Description, request.Price, request.ImageUrls ?? new List<string>(), true, request.ShowInCrossSell, request.CrossSellDiscountPrice);
         }
         await _repository.AddAsync(product);
         await _repository.SaveChangesAsync();
@@ -51,7 +51,7 @@ public class ProductsController : ControllerBase
         var product = await _repository.GetByIdAsync(id);
         if (product == null) return NotFound();
 
-        product.UpdateDetails(request.Name, request.Description, request.Price, request.ImageUrls ?? new List<string>(), request.IsAvailable, request.ShowInCrossSell);
+        product.UpdateDetails(request.Name, request.Description, request.Price, request.ImageUrls ?? new List<string>(), request.IsAvailable, request.ShowInCrossSell, request.CrossSellDiscountPrice);
         await _repository.UpdateAsync(product);
         await _repository.SaveChangesAsync();
 
@@ -72,5 +72,5 @@ public class ProductsController : ControllerBase
     }
 }
 
-public record CreateProductRequest(Guid CategoryId, string Name, string Description, decimal Price, List<string>? ImageUrls, bool ShowInCrossSell = false);
-public record UpdateProductRequest(string Name, string Description, decimal Price, List<string>? ImageUrls, bool IsAvailable, bool ShowInCrossSell = false);
+public record CreateProductRequest(Guid CategoryId, string Name, string Description, decimal Price, List<string>? ImageUrls, bool ShowInCrossSell = false, decimal? CrossSellDiscountPrice = null);
+public record UpdateProductRequest(string Name, string Description, decimal Price, List<string>? ImageUrls, bool IsAvailable, bool ShowInCrossSell = false, decimal? CrossSellDiscountPrice = null);

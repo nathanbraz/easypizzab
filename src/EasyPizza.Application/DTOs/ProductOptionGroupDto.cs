@@ -52,5 +52,6 @@ public class CatalogProductDto
     public List<string> ImageUrls { get; set; } = new();
     public bool IsAvailable { get; set; }
     public bool ShowInCrossSell { get; set; }
+    public decimal? CrossSellDiscountPrice { get; set; }
     public List<ProductOptionGroupDto> OptionGroups { get; set; } = new();
 }

@@ -90,7 +90,14 @@ public class OrderService(
                 addonsTotal += halfAndHalfExtra;
             }
 
-            var unitPrice = product.Price + addonsTotal;
+            // Sugestão de cross-sell (carrossel "Aproveite e leve também"): usa o preço de combo
+            // configurado no produto, se houver — o cliente só sinaliza IsCrossSell, o valor do
+            // desconto em si vem sempre do catálogo, nunca do payload.
+            var basePrice = item.IsCrossSell && product.CrossSellDiscountPrice.HasValue
+                ? product.CrossSellDiscountPrice.Value
+                : product.Price;
+
+            var unitPrice = basePrice + addonsTotal;
             subTotal += unitPrice * item.Quantity;
 
             pricedItems.Add(new PricedOrderItem(product.Id, product.Name, item.Quantity, unitPrice, item.Notes, recalculatedAddons));

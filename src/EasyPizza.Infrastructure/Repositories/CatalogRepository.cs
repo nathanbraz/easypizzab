@@ -152,6 +152,7 @@ public class CatalogRepository : ICatalogRepository
             ImageUrls = product.ImageUrls,
             IsAvailable = product.IsAvailable,
             ShowInCrossSell = product.ShowInCrossSell,
+            CrossSellDiscountPrice = product.CrossSellDiscountPrice,
             // Mesma combinação (grupos próprios + compartilhados da categoria) do endpoint de detalhe.
             OptionGroups = (await GetProductOptionsAsync(product.Id)).ToList()
         };

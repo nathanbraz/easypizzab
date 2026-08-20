@@ -12,6 +12,13 @@ public class Product : Entity
     public bool IsAvailable { get; private set; }
     public bool ShowInCrossSell { get; private set; }
 
+    // Preço cobrado quando este produto é adicionado via sugestão de cross-sell (carrossel
+    // "Aproveite e leve também" no checkout) em vez do preço normal do catálogo. Nulo = sem
+    // desconto, usa o Price normal mesmo quando sugerido. Só o backend decide o preço final
+    // (ver OrderService) — o cliente nunca manda o valor do desconto, só sinaliza que esse item
+    // veio do fluxo de sugestão.
+    public decimal? CrossSellDiscountPrice { get; private set; }
+
     public ProductCategory? Category { get; private set; }
 
     public ICollection<ProductOptionGroup> OptionGroups { get; private set; } = new List<ProductOptionGroup>();
@@ -30,7 +37,7 @@ public class Product : Entity
         ShowInCrossSell = false;
     }
 
-    public void UpdateDetails(string name, string description, decimal price, List<string> imageUrls, bool isAvailable, bool showInCrossSell = false)
+    public void UpdateDetails(string name, string description, decimal price, List<string> imageUrls, bool isAvailable, bool showInCrossSell = false, decimal? crossSellDiscountPrice = null)
     {
         Name = name;
         Description = description;
@@ -38,6 +45,7 @@ public class Product : Entity
         ImageUrls = imageUrls ?? new List<string>();
         IsAvailable = isAvailable;
         ShowInCrossSell = showInCrossSell;
+        CrossSellDiscountPrice = crossSellDiscountPrice;
         SetUpdatedAt();
     }
 }
