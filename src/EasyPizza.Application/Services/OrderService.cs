@@ -54,6 +54,42 @@ public class OrderService(
                 }
             }
 
+            // Pizza Meio a Meio: a 2ª metade não é um item de catálogo (Tamanho/Borda/Adicionais),
+            // então não tem como validar contra ProductOptionGroups/CategoryOptionItems como os
+            // outros adicionais acima — por isso vem num campo próprio (SecondHalfProductId), não
+            // misturada em Addons. Mesmo assim o preço nunca é confiado do cliente: refaz aqui o
+            // mesmo cálculo do ProductModal (só cobra a diferença pra cima, item por item, entre o
+            // que o 2º sabor cobra e o que o 1º já cobrou pelas MESMAS opções compartilhadas
+            // selecionadas), usando exclusivamente dados recém-lidos do catálogo.
+            if (item.SecondHalfProductId.HasValue)
+            {
+                var secondProduct = await catalogRepository.GetProductByIdAsync(item.SecondHalfProductId.Value)
+                    ?? throw new InvalidOperationException("Produto da 2ª metade não encontrado.");
+
+                if (!secondProduct.IsAvailable)
+                    throw new InvalidOperationException($"O produto \"{secondProduct.Name}\" (2ª metade) não está disponível no momento.");
+
+                var secondProductOptions = (await catalogRepository.GetProductOptionsAsync(item.SecondHalfProductId.Value))
+                    .SelectMany(g => g.Options)
+                    .ToDictionary(o => o.Id);
+
+                decimal halfAndHalfExtra = 0;
+                foreach (var addon in recalculatedAddons)
+                {
+                    if (addon.ProductOptionItemId.HasValue && secondProductOptions.TryGetValue(addon.ProductOptionItemId.Value, out var secondOption))
+                    {
+                        var diff = secondOption.AdditionalPrice - addon.Price;
+                        if (diff > 0) halfAndHalfExtra += diff;
+                    }
+                }
+
+                var baseDiff = secondProduct.Price - product.Price;
+                if (baseDiff > 0) halfAndHalfExtra += baseDiff;
+
+                recalculatedAddons.Add(new OrderItemAddonInput(null, $"Meia {secondProduct.Name}", halfAndHalfExtra, 1));
+                addonsTotal += halfAndHalfExtra;
+            }
+
             var unitPrice = product.Price + addonsTotal;
             subTotal += unitPrice * item.Quantity;
 

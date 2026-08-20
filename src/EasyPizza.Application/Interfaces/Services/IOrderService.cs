@@ -26,7 +26,12 @@ public record OrderItemInput(
     int Quantity,
     decimal UnitPrice,
     string? Notes = null,
-    List<OrderItemAddonInput>? Addons = null);
+    List<OrderItemAddonInput>? Addons = null,
+    // Pizza Meio a Meio: id do produto escolhido pra 2ª metade. Fica separado de Addons de
+    // propósito — não é uma opção de catálogo (Tamanho/Borda/Adicionais), é outro produto inteiro
+    // combinado com este. O preço da diferença é sempre recalculado no backend (OrderService),
+    // nunca confiado daqui.
+    Guid? SecondHalfProductId = null);
 
 /// <summary>DTO de adicional/opção selecionada por item de pedido.</summary>
 public record OrderItemAddonInput(
